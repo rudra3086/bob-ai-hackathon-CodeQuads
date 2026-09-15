@@ -1,4 +1,4 @@
-# 🚀 [Your Project Title Here]
+# 🚀 Bob — Port Operations AI Copilot
 
 > ⚠️ **Replace everything in `[ ]` brackets with your actual content before submission.**
 
@@ -8,10 +8,10 @@
 
 | Field | Value |
 |---|---|
-| **Team Name** | [Your Team Name] |
-| **Track** | [AI / DevOps / Sustainability / Open] |
-| **Team Lead** | [Name] — [email@ibm.com] |
-| **Members** | [Name 1], [Name 2], [Name 3] |
+| **Team Name** | CodeQuads |
+| **Track** | AI |
+| **Team Lead** | Bhavya Durgani— [email@ibm.com] |
+| **Members** | Rudra Patel, Maitri Sheta, Vainavi Raval |
 
 ---
 
@@ -19,7 +19,7 @@
 
 > In 2–3 sentences: What problem does your project solve? Who experiences this problem?
 
-[Describe the real-world problem your project addresses. Be specific about who the user is and what pain point they face.]
+Container ports like LA/Long Beach suffer severe congestion — 100+ vessels waiting offshore for weeks — costing global supply chains billions of dollars. Berth, crane, and yard allocation is still largely manual and reactive; port operations teams only spot congestion after ships are already queuing at anchor. Shift supervisors lack a forward-looking, data-driven tool to predict bottlenecks and act before delays cascade.
 
 ---
 
@@ -27,17 +27,17 @@
 
 > In 2–3 sentences: What did you build? How does it solve the problem above?
 
-[Describe your solution clearly. Explain the core mechanism — what makes it work.]
+Bob is an AI-powered port operations copilot that ingests vessel schedules, berth capacity, yard utilization, and historical incident data to predict congestion up to 72 hours ahead. It automatically computes optimized berth and crane assignments using an earliest-free-compatible-berth algorithm, generates ranked routing recommendations (slow-steam instructions, alternate berth routing, arrival staggering), and produces a concise shift supervisor operations plan. The entire solution runs as a single self-contained interactive dashboard — no backend required — with all data persisted in the browser session.
 
 ---
 
 ## ✨ Key Features
 
-- **Feature 1:** [Brief description — e.g., "Real-time anomaly detection using watsonx.ai"]
-- **Feature 2:** [Brief description]
-- **Feature 3:** [Brief description]
-- **Feature 4:** [Optional]
-- **Feature 5:** [Optional]
+- **Feature 1:** Congestion Prediction Engine — analyzes incoming vessel schedules against real-time berth and yard capacity to flag high/medium/low risk windows up to 72 hours ahead, with plain-language reasoning for each risk.
+- **Feature 2:** Berth & Crane Optimizer — assigns every vessel to the earliest-free compatible berth, computes handling durations by crane count and cargo volume, and surfaces vessels that cannot be accommodated within the window.
+- **Feature 3:** Ranked Routing Recommendations — prioritizes interventions by TEU impact and delay hours saved (slow-steam, alternate berth, arrival staggering, yard clearance.
+- **Feature 4:** 72-Hour Ops Plan — generates a concise shift supervisor brief with risk summary, berth/crane schedule table, top 3 priority actions, and live escalation flags.
+- **Feature 5:** Full CRUD Dashboard — vessels, berths, yard zones, and incidents are all editable inline; all changes persist in browser sessionStorage with no external database
 
 ---
 
@@ -45,11 +45,11 @@
 
 | Category | Technologies |
 |---|---|
-| **Languages** | [e.g., Python, TypeScript] |
-| **Frameworks** | [e.g., FastAPI, React] |
-| **IBM Technologies** | [e.g., watsonx.ai, IBM Bob, IBM Cloud] |
-| **Databases** | [e.g., PostgreSQL, Redis] |
-| **Other** | [e.g., Docker, GitHub Actions] |
+| **Languages** | HTML5, CSS3, JavaScript (ES2020) |
+| **Frameworks** | Vanilla JS (no framework) |
+| **IBM Technologies** | IBM Bob (AI Copilot platform) |
+| **Databases** | Browser sessionStorage (client-side only) |
+| **Other** | Apache ECharts 5.4, Lucide SVG icon system, CSS custom properties |
 
 ---
 
@@ -77,18 +77,18 @@
 
 ```bash
 # 1. Clone the repo
-git clone https://github.com/[your-repo].git
-cd [your-repo]
+git clone https://github.com/bob-ai-hackathon-CodeQuads.git
+cd bob-ai-hackathon-CodeQuads
 
 # 2. Install dependencies
-[your install command here]
+# No dependencies — fully self-contained HTML file
 
 # 3. Configure environment
 cp .env.example .env
-# Edit .env with your values
+# No environment configuration required
 
 # 4. Run the project
-[your run command here]
+# Open port_ops_dashboard.html directly in any modern browser
 ```
 
 ---
@@ -108,14 +108,13 @@ cp .env.example .env
 
 > Be honest — judges appreciate transparency over overclaiming.
 
-- [Limitation 1: e.g., "Authentication is mocked — not production-ready"]
-- [Limitation 2: e.g., "Only tested on Chrome"]
-- [Limitation 3: e.g., "Feature X is scaffolded but not fully implemented"]
-
+- Congestion risk windows are rule-based (derived from the four input datasets), not trained ML predictions — a production system would layer in weather feeds, customs data, and vessel AIS streams
+- All data lives in browser sessionStorage — refreshing the tab restores state, but closing the browser clears it; a production deployment would require a persistent backend
+- The berth optimizer uses earliest-free-compatible-berth (greedy); a full integer-programming solver would yield globally optimal schedules across multi-day horizons.
 ---
 
 ## 🏅 What We're Most Proud Of
 
-[Tell the judges what part of your submission is strongest and worth paying close attention to.]
+The end-to-end analysis engine — from raw CSV inputs to a fully computed 72-hour operations plan with congestion predictions, optimized berth assignments, ranked routing recommendations, and live escalation flags — runs entirely in the browser with zero backend, zero dependencies, and zero setup. A shift supervisor can open one HTML file and immediately see actionable intelligence derived from their own data.
 
 ---
