@@ -56,7 +56,9 @@ Bob is an AI-powered port operations copilot that ingests vessel schedules, bert
 ## 📁 Repository Structure
 
 ```
-├── src/                  # All source code
+├── src/
+|   |--frontend/
+|       |---index.html                 # All source code
 ├── docs/                 # Written documentation
 │   ├── problem-statement.md
 │   ├── solution-overview.md
