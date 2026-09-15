@@ -6,12 +6,43 @@
 
 ```mermaid
 graph TD
-    A[User / Browser] -->|HTTP| B[Frontend - React]
-    B -->|REST API| C[Backend - FastAPI]
-    C -->|SDK| D[watsonx.ai]
-    C -->|Query| E[PostgreSQL]
-    C -->|Publish| F[Slack Webhook]
-    D -->|Inference Result| C
+    A[Shift Supervisor / Browser] -->|Opens HTML file locally| B[port_ops_dashboard.html]
+
+    B --> C[sessionStorage API]
+    C -->|Persist & restore state| B
+
+    B --> D[Data Layer]
+    D --> D1[vessel_schedule.csv]
+    D --> D2[berth_capacity.csv]
+    D --> D3[yard_capacity.csv]
+    D --> D4[historical_incidents.csv]
+
+    D1 & D2 & D3 & D4 -->|Parsed into JS state object| E[In-Memory State Engine]
+
+    E --> F[Congestion Prediction Engine]
+    E --> G[Berth & Crane Optimizer]
+    E --> H[Routing Recommendation Ranker]
+    E --> I[Escalation Flag Generator]
+
+    F -->|Risk windows + reasons| J[UI Render Layer]
+    G -->|Vessel-to-berth assignments + wait times| J
+    H -->|Ranked actions by TEU impact| J
+    I -->|Live escalation alerts + owners| J
+
+    J --> K1[Overview Dashboard]
+    J --> K2[Congestion Page]
+    J --> K3[Vessels Page]
+    J --> K4[Berths & Cranes Page]
+    J --> K5[Yard Capacity Page]
+    J --> K6[72-Hour Ops Plan Page]
+    J --> K7[Incidents Page]
+    J --> K8[Edit Data Page]
+
+    K1 & K2 & K3 & K4 & K5 & K6 & K7 --> L[Apache ECharts 5.4]
+    L -->|Bar, Pie, Line, Gantt charts| J
+
+    K8 -->|CRUD edits| E
+    E -->|Auto-save on every edit| C
 ```
 
 ## Components
