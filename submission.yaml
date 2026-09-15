@@ -63,7 +63,7 @@ artifacts:
   source_code: "src/"
   setup_guide: "docs/setup-guide.md"
   architecture_doc: "docs/architecture.md"
-  demo_video: "https://www.youtube.com/watch?v=lj2nrKsU5pc"   # URL to hosted video (YouTube, Loom, Box)
-  live_demo: "https://www.youtube.com/watch?v=lj2nrKsU5pc"      # URL to deployed demo (optional)
-  screenshots: "https://www.youtube.com/watch?v=lj2nrKsU5pc"
-  presentation: "https://www.youtube.com/watch?v=lj2nrKsU5pc"
+  demo_video: "www.youtube.com/watch?v=lj2nrKsU5pc"   # URL to hosted video (YouTube, Loom, Box)
+  live_demo: "www.youtube.com/watch?v=lj2nrKsU5pc"      # URL to deployed demo (optional)
+  screenshots: ""
+  presentation: ""
