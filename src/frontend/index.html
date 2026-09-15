@@ -1,0 +1,1462 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Port Operations — Bob AI Copilot</title>
+<script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+<style>
+/* ─── TOKENS ─────────────────────────────────────────────── */
+:root{
+  --bg:         #0a0d14;
+  --surface:    #111620;
+  --surface2:   #161d2c;
+  --surface3:   #1c2537;
+  --border:     #1f2c42;
+  --border2:    #263347;
+  --text:       #e2e8f0;
+  --text2:      #8898aa;
+  --text3:      #4a5568;
+  --accent:     #3b7df8;
+  --accent-dim: #1e3a6e;
+  --red:        #f04444;
+  --red-dim:    #3d1515;
+  --yellow:     #f5a623;
+  --yellow-dim: #3d2806;
+  --green:      #22c55e;
+  --green-dim:  #0b3020;
+  --purple:     #a78bfa;
+  --purple-dim: #2d1f5e;
+  --radius:     8px;
+  --radius-lg:  12px;
+  --shadow:     0 4px 24px #00000066;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{font-size:13px;-webkit-font-smoothing:antialiased}
+body{font-family:"Inter","Segoe UI",system-ui,sans-serif;background:var(--bg);color:var(--text);height:100vh;overflow:hidden;display:flex;flex-direction:column}
+button{cursor:pointer;font-family:inherit;font-size:13px}
+input,select,textarea{font-family:inherit;font-size:13px}
+svg{display:block;flex-shrink:0}
+
+/* ─── TOPBAR ─────────────────────────────────────────────── */
+.topbar{
+  height:48px;background:var(--surface);border-bottom:1px solid var(--border);
+  display:flex;align-items:center;padding:0 18px;gap:12px;flex-shrink:0;
+  position:sticky;top:0;z-index:200;
+}
+.tb-logo{display:flex;align-items:center;gap:8px}
+.tb-logo-mark{width:28px;height:28px;background:var(--accent);border-radius:6px;display:flex;align-items:center;justify-content:center}
+.tb-logo-text{font-size:13px;font-weight:700;color:var(--text);letter-spacing:.01em}
+.tb-logo-sub{font-size:11px;color:var(--text3);margin-left:2px}
+.tb-sep{width:1px;height:20px;background:var(--border);margin:0 4px}
+.tb-spacer{flex:1}
+.tb-pill{display:flex;align-items:center;gap:6px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:4px 10px;font-size:11px;color:var(--text2);font-variant-numeric:tabular-nums}
+.tb-pill svg{color:var(--text3)}
+.tb-saved{font-size:11px;color:var(--green);opacity:0;transition:opacity .4s;white-space:nowrap}
+.tb-btn{display:inline-flex;align-items:center;gap:6px;background:var(--accent);color:#fff;border:none;border-radius:6px;padding:6px 14px;font-size:12px;font-weight:600;transition:filter .15s}
+.tb-btn:hover{filter:brightness(1.1)}
+
+/* ─── LAYOUT ─────────────────────────────────────────────── */
+.shell{display:flex;flex:1;overflow:hidden}
+
+/* ─── SIDEBAR ────────────────────────────────────────────── */
+.sidebar{
+  width:208px;background:var(--surface);border-right:1px solid var(--border);
+  display:flex;flex-direction:column;flex-shrink:0;overflow-y:auto;padding:8px 0 16px;
+}
+.sb-section{padding:16px 14px 4px;font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.1em}
+.nav-item{
+  display:flex;align-items:center;gap:9px;padding:7px 14px;
+  cursor:pointer;border-left:2px solid transparent;
+  transition:all .12s;color:var(--text2);user-select:none;
+}
+.nav-item:hover{background:var(--surface2);color:var(--text)}
+.nav-item.active{background:var(--surface2);color:var(--accent);border-left-color:var(--accent)}
+.nav-item .ni-label{font-size:12px;font-weight:500;flex:1}
+.nav-badge{
+  font-size:10px;font-weight:700;padding:1px 6px;border-radius:10px;
+  background:var(--red);color:#fff;
+}
+.nav-badge.warn{background:var(--yellow);color:#111}
+.nav-badge.ok{background:var(--green);color:#111}
+
+/* ─── CONTENT ────────────────────────────────────────────── */
+.content{flex:1;overflow-y:auto;padding:22px 24px 40px}
+.page{display:none}
+.page.active{display:block}
+.page-hdr{margin-bottom:20px}
+.page-title{font-size:18px;font-weight:700;color:var(--text);line-height:1.2}
+.page-sub{font-size:12px;color:var(--text3);margin-top:3px}
+
+/* ─── GRIDS ──────────────────────────────────────────────── */
+.g4{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px}
+.g3{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:16px}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px}
+
+/* ─── CARDS ──────────────────────────────────────────────── */
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px}
+.card-accent{border-top:2px solid}
+.ca-blue{border-top-color:var(--accent)}
+.ca-red{border-top-color:var(--red)}
+.ca-yellow{border-top-color:var(--yellow)}
+.ca-green{border-top-color:var(--green)}
+.ca-purple{border-top-color:var(--purple)}
+.card-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--text3);margin-bottom:8px}
+.card-val{font-size:24px;font-weight:800;color:var(--text);line-height:1.1;letter-spacing:-.02em}
+.card-sub{font-size:11px;color:var(--text3);margin-top:5px}
+
+/* ─── PANELS ─────────────────────────────────────────────── */
+.panel{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);margin-bottom:16px;overflow:hidden}
+.panel-hdr{padding:12px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px}
+.panel-hdr-title{font-size:13px;font-weight:600;color:var(--text);flex:1}
+.panel-hdr svg{color:var(--text3)}
+.panel-body{padding:16px}
+
+/* ─── SECTION HEADINGS ───────────────────────────────────── */
+.sh{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.09em;color:var(--text3);margin:20px 0 10px;display:flex;align-items:center;gap:8px}
+.sh::after{content:'';flex:1;height:1px;background:var(--border)}
+
+/* ─── BADGES ─────────────────────────────────────────────── */
+.badge{display:inline-flex;align-items:center;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;white-space:nowrap}
+.b-red   {background:var(--red-dim);   color:var(--red);   border:1px solid #5a1e1e}
+.b-yellow{background:var(--yellow-dim);color:var(--yellow);border:1px solid #5a3a06}
+.b-green {background:var(--green-dim); color:var(--green); border:1px solid #0e4a2a}
+.b-blue  {background:var(--accent-dim);color:var(--accent);border:1px solid #1e3a6e}
+.b-gray  {background:var(--surface3);  color:var(--text2); border:1px solid var(--border2)}
+.b-purple{background:var(--purple-dim);color:var(--purple);border:1px solid #3d2a6e}
+
+/* ─── TABLES ─────────────────────────────────────────────── */
+.tbl-wrap{overflow-x:auto;border-radius:var(--radius);border:1px solid var(--border)}
+.tbl{width:100%;border-collapse:collapse;font-size:12px}
+.tbl th{background:var(--surface2);color:var(--text3);font-weight:600;padding:9px 12px;text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:.06em;border-bottom:1px solid var(--border);white-space:nowrap}
+.tbl td{padding:9px 12px;border-bottom:1px solid var(--border);color:var(--text);vertical-align:middle}
+.tbl tr:last-child td{border-bottom:none}
+.tbl tbody tr:hover td{background:var(--surface2)}
+
+/* ─── PROGRESS ───────────────────────────────────────────── */
+.prog-wrap{background:var(--surface3);border-radius:4px;height:6px;overflow:hidden;margin-top:5px}
+.prog-bar{height:100%;border-radius:4px;transition:width .5s ease}
+.pb-red   {background:var(--red)}
+.pb-yellow{background:var(--yellow)}
+.pb-green {background:var(--green)}
+
+/* ─── ALERTS ─────────────────────────────────────────────── */
+.alert{border-radius:var(--radius);padding:11px 14px;font-size:12px;margin-bottom:10px;border-left:3px solid;display:flex;gap:10px;align-items:flex-start;line-height:1.6}
+.alert svg{flex-shrink:0;margin-top:1px}
+.al-red   {background:var(--red-dim);   border-left-color:var(--red);   color:#fca5a5}
+.al-red svg{color:var(--red)}
+.al-yellow{background:var(--yellow-dim);border-left-color:var(--yellow);color:#fcd34d}
+.al-yellow svg{color:var(--yellow)}
+.al-green {background:var(--green-dim); border-left-color:var(--green); color:#6ee7b7}
+.al-green svg{color:var(--green)}
+.al-blue  {background:var(--accent-dim);border-left-color:var(--accent);color:#93c5fd}
+.al-blue svg{color:var(--accent)}
+
+/* ─── FORMS ──────────────────────────────────────────────── */
+.form-row{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:12px;align-items:flex-end}
+.form-group{display:flex;flex-direction:column;gap:4px;flex:1;min-width:120px}
+.form-label{font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.06em}
+.form-input{background:var(--surface2);border:1px solid var(--border2);border-radius:6px;color:var(--text);padding:7px 10px;outline:none;transition:border-color .15s;width:100%}
+.form-input:focus{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent-dim)}
+.form-select{background:var(--surface2);border:1px solid var(--border2);border-radius:6px;color:var(--text);padding:7px 10px;outline:none;width:100%}
+
+/* ─── BUTTONS ────────────────────────────────────────────── */
+.btn{border:none;border-radius:6px;padding:7px 14px;font-weight:600;cursor:pointer;transition:filter .15s;display:inline-flex;align-items:center;gap:6px}
+.btn:hover{filter:brightness(1.1)}
+.btn-primary{background:var(--accent);color:#fff}
+.btn-danger {background:var(--red);color:#fff}
+.btn-ghost  {background:transparent;color:var(--text2);border:1px solid var(--border2)}
+.btn-ghost:hover{background:var(--surface2);color:var(--text)}
+.btn-green  {background:var(--green);color:#0a0d14;font-weight:700}
+.btn-sm{padding:4px 10px;font-size:11px}
+
+/* ─── TABS ───────────────────────────────────────────────── */
+.tabs-bar{display:flex;border-bottom:1px solid var(--border);margin-bottom:16px}
+.tab-btn{background:none;border:none;border-bottom:2px solid transparent;padding:8px 16px;font-size:12px;font-weight:600;color:var(--text3);cursor:pointer;margin-bottom:-1px;transition:all .12s}
+.tab-btn:hover{color:var(--text2)}
+.tab-btn.active{color:var(--accent);border-bottom-color:var(--accent)}
+.tab-pane{display:none}
+.tab-pane.active{display:block}
+
+/* ─── MODALS ─────────────────────────────────────────────── */
+.modal-bg{display:none;position:fixed;inset:0;background:#00000099;z-index:300;align-items:center;justify-content:center}
+.modal-bg.open{display:flex}
+.modal{background:var(--surface);border:1px solid var(--border2);border-radius:var(--radius-lg);padding:24px;min-width:380px;max-width:540px;width:92%;max-height:88vh;overflow-y:auto;box-shadow:var(--shadow)}
+.modal-title{font-size:14px;font-weight:700;color:var(--text);margin-bottom:18px;display:flex;align-items:center;gap:8px}
+.modal-title svg{color:var(--accent)}
+.modal-footer{display:flex;justify-content:flex-end;gap:10px;margin-top:20px;padding-top:16px;border-top:1px solid var(--border)}
+
+/* ─── TIMELINE ───────────────────────────────────────────── */
+.tl-row{display:flex;align-items:center;gap:8px;margin-bottom:7px}
+.tl-label{width:24px;font-size:10px;font-weight:700;color:var(--text3);flex-shrink:0;letter-spacing:.04em}
+.tl-track{flex:1;background:var(--surface3);border-radius:4px;height:28px;position:relative}
+.tl-block{position:absolute;height:100%;border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;color:#fff;overflow:hidden;padding:0 4px;cursor:pointer;transition:filter .15s;top:0;letter-spacing:.03em}
+.tl-block:hover{filter:brightness(1.2);z-index:10}
+
+/* ─── ESCALATION ROWS ────────────────────────────────────── */
+.esc-row{display:flex;align-items:flex-start;gap:12px;padding:12px 14px;border-radius:var(--radius);background:var(--surface2);border:1px solid var(--border);margin-bottom:8px;border-left:3px solid}
+.esc-row.esc-red{border-left-color:var(--red)}
+.esc-row.esc-yellow{border-left-color:var(--yellow)}
+.esc-icon{flex-shrink:0;margin-top:2px}
+.esc-icon svg{color:var(--red)}
+.esc-row.esc-yellow .esc-icon svg{color:var(--yellow)}
+.esc-title{font-size:12px;font-weight:700;color:var(--text);margin-bottom:2px}
+.esc-desc{font-size:11px;color:var(--text2);line-height:1.5}
+.esc-owner{font-size:10px;color:var(--accent);margin-top:4px;font-weight:600}
+
+/* ─── RISK METER ─────────────────────────────────────────── */
+.risk-meter{display:flex;gap:3px;margin-top:8px}
+.rm-seg{flex:1;height:5px;border-radius:3px;background:var(--surface3)}
+.rm-red{background:var(--red)}
+.rm-yellow{background:var(--yellow)}
+.rm-green{background:var(--green)}
+
+/* ─── MISC ───────────────────────────────────────────────── */
+.divider{height:1px;background:var(--border);margin:4px 0}
+.mono{font-variant-numeric:tabular-nums;font-feature-settings:"tnum"}
+
+/* ─── TOAST ──────────────────────────────────────────────── */
+#toast{position:fixed;bottom:22px;right:22px;background:var(--surface2);border:1px solid var(--accent);color:var(--text);padding:10px 16px;border-radius:var(--radius);font-size:12px;font-weight:600;z-index:999;opacity:0;transform:translateY(8px);transition:all .25s;pointer-events:none;box-shadow:var(--shadow);display:flex;align-items:center;gap:8px}
+#toast.show{opacity:1;transform:translateY(0)}
+#toast svg{color:var(--accent)}
+
+/* ─── SCROLL ─────────────────────────────────────────────── */
+::-webkit-scrollbar{width:5px;height:5px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px}
+
+/* ─── RESPONSIVE ─────────────────────────────────────────── */
+@media(max-width:860px){.g4{grid-template-columns:1fr 1fr}.g3{grid-template-columns:1fr 1fr}}
+@media(max-width:600px){.g2,.g3,.g4{grid-template-columns:1fr}.sidebar{display:none}}
+</style>
+</head>
+<body>
+
+<!-- ═══ SVG ICON DEFS (inline sprite) ═══════════════════════ -->
+<svg style="display:none" xmlns="http://www.w3.org/2000/svg">
+  <symbol id="ic-anchor" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="12" cy="5" r="3"/><line x1="12" y1="8" x2="12" y2="22"/><path d="M5 12H2a10 10 0 0 0 20 0h-3"/>
+  </symbol>
+  <symbol id="ic-layout" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/>
+  </symbol>
+  <symbol id="ic-alert-triangle" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+  </symbol>
+  <symbol id="ic-ship" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M2 21c.6.5 1.2 1 2.5 1C7 22 7 20 9.5 20s2.5 2 5 2 2.5-2 5-2 2.5 2 5 2"/><path d="M19.38 20A11.6 11.6 0 0 0 21 14l-9-4-9 4c0 2.9.94 5.34 2.81 7.76"/><path d="M19 13V7a1 1 0 0 0-1-1H6a1 1 0 0 0-1 1v6"/><polygon points="12 3 13.4 9 10.6 9 12 3"/>
+  </symbol>
+  <symbol id="ic-crane" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M11 21V3L22 8"/><path d="M11 8h11"/><path d="M6 21v-6"/><path d="M3 18h6"/><line x1="11" y1="13" x2="11" y2="21"/>
+  </symbol>
+  <symbol id="ic-container" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M21 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v3"/><path d="M3 8h18v13a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1z"/><line x1="8" y1="8" x2="8" y2="21"/><line x1="16" y1="8" x2="16" y2="21"/>
+  </symbol>
+  <symbol id="ic-clipboard" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/>
+  </symbol>
+  <symbol id="ic-history" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-4.95"/>
+  </symbol>
+  <symbol id="ic-edit" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>
+  </symbol>
+  <symbol id="ic-save" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/>
+  </symbol>
+  <symbol id="ic-clock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+  </symbol>
+  <symbol id="ic-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+    <polyline points="20 6 9 17 4 12"/>
+  </symbol>
+  <symbol id="ic-plus" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+    <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+  </symbol>
+  <symbol id="ic-trash" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>
+  </symbol>
+  <symbol id="ic-search" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+  </symbol>
+  <symbol id="ic-info" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+  </symbol>
+  <symbol id="ic-x-circle" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/>
+  </symbol>
+  <symbol id="ic-trending-up" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/>
+  </symbol>
+  <symbol id="ic-activity" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+  </symbol>
+  <symbol id="ic-map-pin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/>
+  </symbol>
+</svg>
+
+<!-- ═══ TOPBAR ════════════════════════════════════════════════ -->
+<div class="topbar">
+  <div class="tb-logo">
+    <div class="tb-logo-mark">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><use href="#ic-anchor"/></svg>
+    </div>
+    <div>
+      <span class="tb-logo-text">Bob</span>
+      <span class="tb-logo-sub">Port Operations AI</span>
+    </div>
+  </div>
+  <div class="tb-sep"></div>
+  <div class="tb-spacer"></div>
+  <div class="tb-pill">
+    <svg width="12" height="12" viewBox="0 0 24 24"><use href="#ic-clock"/></svg>
+    <span id="clock" class="mono">--:--:--</span>
+  </div>
+  <span class="tb-saved" id="save-indicator">
+    <svg width="12" height="12" viewBox="0 0 24 24"><use href="#ic-check"/></svg>
+    Saved
+  </span>
+  <button class="tb-btn" onclick="saveToSession()">
+    <svg width="13" height="13" viewBox="0 0 24 24"><use href="#ic-save"/></svg>
+    Save Session
+  </button>
+</div>
+
+<!-- ═══ SHELL ═════════════════════════════════════════════════ -->
+<div class="shell">
+
+<!-- SIDEBAR -->
+<div class="sidebar">
+  <div class="sb-section">Dashboards</div>
+  <div class="nav-item active" onclick="showPage('overview')" id="nav-overview">
+    <svg width="15" height="15" viewBox="0 0 24 24"><use href="#ic-layout"/></svg>
+    <span class="ni-label">Overview</span>
+  </div>
+  <div class="nav-item" onclick="showPage('congestion')" id="nav-congestion">
+    <svg width="15" height="15" viewBox="0 0 24 24"><use href="#ic-alert-triangle"/></svg>
+    <span class="ni-label">Congestion</span>
+    <span class="nav-badge" id="badge-congestion">2</span>
+  </div>
+  <div class="nav-item" onclick="showPage('vessels')" id="nav-vessels">
+    <svg width="15" height="15" viewBox="0 0 24 24"><use href="#ic-ship"/></svg>
+    <span class="ni-label">Vessels</span>
+  </div>
+  <div class="nav-item" onclick="showPage('berths')" id="nav-berths">
+    <svg width="15" height="15" viewBox="0 0 24 24"><use href="#ic-crane"/></svg>
+    <span class="ni-label">Berths &amp; Cranes</span>
+  </div>
+  <div class="nav-item" onclick="showPage('yard')" id="nav-yard">
+    <svg width="15" height="15" viewBox="0 0 24 24"><use href="#ic-container"/></svg>
+    <span class="ni-label">Yard Capacity</span>
+    <span class="nav-badge warn" id="badge-yard">!</span>
+  </div>
+  <div class="nav-item" onclick="showPage('plan')" id="nav-plan">
+    <svg width="15" height="15" viewBox="0 0 24 24"><use href="#ic-clipboard"/></svg>
+    <span class="ni-label">Ops Plan</span>
+  </div>
+  <div class="nav-item" onclick="showPage('incidents')" id="nav-incidents">
+    <svg width="15" height="15" viewBox="0 0 24 24"><use href="#ic-history"/></svg>
+    <span class="ni-label">Incidents</span>
+  </div>
+  <div class="sb-section" style="margin-top:auto">Configuration</div>
+  <div class="nav-item" onclick="showPage('data')" id="nav-data">
+    <svg width="15" height="15" viewBox="0 0 24 24"><use href="#ic-edit"/></svg>
+    <span class="ni-label">Edit Data</span>
+  </div>
+</div>
+
+<!-- CONTENT -->
+<div class="content">
+
+<!-- ══════════════════ OVERVIEW ══════════════════ -->
+<div class="page active" id="page-overview">
+  <div class="page-hdr">
+    <div class="page-title">Operations Overview</div>
+    <div class="page-sub">Analysis window: 16 Sep 2026 00:00 — 18 Sep 2026 23:59</div>
+  </div>
+
+  <div class="g4">
+    <div class="card card-accent ca-blue">
+      <div class="card-label">Vessels (72h)</div>
+      <div class="card-val" id="kpi-vessels">12</div>
+      <div class="card-sub" id="kpi-vessels-sub">4 Large · 5 Medium · 3 Small</div>
+    </div>
+    <div class="card card-accent ca-red">
+      <div class="card-label">Peak Risk Window</div>
+      <div class="card-val" style="font-size:15px;color:var(--red)" id="kpi-risk">HIGH</div>
+      <div class="risk-meter" id="risk-meter">
+        <div class="rm-seg rm-red"></div><div class="rm-seg rm-red"></div><div class="rm-seg rm-red"></div>
+        <div class="rm-seg"></div><div class="rm-seg"></div>
+      </div>
+      <div class="card-sub">16 Sep 02:00–09:00</div>
+    </div>
+    <div class="card card-accent ca-yellow">
+      <div class="card-label">Y1 Yard Utilization</div>
+      <div class="card-val" style="color:var(--yellow)" id="kpi-y1">87%</div>
+      <div class="card-sub">5,200 / 6,000 TEU — Critical</div>
+    </div>
+    <div class="card card-accent ca-green">
+      <div class="card-label">On-Time Vessels</div>
+      <div class="card-val" style="color:var(--green)" id="kpi-ontime">10 / 12</div>
+      <div class="card-sub">2 require intervention</div>
+    </div>
+  </div>
+
+  <div class="g2">
+    <div class="panel">
+      <div class="panel-hdr">
+        <svg width="14" height="14" viewBox="0 0 24 24"><use href="#ic-trending-up"/></svg>
+        <span class="panel-hdr-title">Incoming TEU Volume by Arrival</span>
+      </div>
+      <div class="panel-body"><div style="height:240px" id="chart-teu"></div></div>
+    </div>
+    <div class="panel">
+      <div class="panel-hdr">
+        <svg width="14" height="14" viewBox="0 0 24 24"><use href="#ic-crane"/></svg>
+        <span class="panel-hdr-title">Berth Status</span>
+      </div>
+      <div class="panel-body" id="berth-status-overview"></div>
+    </div>
+  </div>
+
+  <div class="g2">
+    <div class="panel">
+      <div class="panel-hdr">
+        <svg width="14" height="14" viewBox="0 0 24 24"><use href="#ic-container"/></svg>
+        <span class="panel-hdr-title">Yard Zone Utilization</span>
+      </div>
+      <div class="panel-body" id="yard-overview"></div>
+    </div>
+    <div class="panel">
+      <div class="panel-hdr">
+        <svg width="14" height="14" viewBox="0 0 24 24"><use href="#ic-alert-triangle"/></svg>
+        <span class="panel-hdr-title">Active Escalations</span>
+      </div>
+      <div class="panel-body" id="escalation-overview"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════ CONGESTION ══════════════════ -->
+<div class="page" id="page-congestion">
+  <div class="page-hdr">
+    <div class="page-title">Congestion Prediction</div>
+    <div class="page-sub">72-hour forward-looking risk analysis against berth and yard capacity</div>
+  </div>
+  <div id="congestion-alerts"></div>
+  <div class="sh">Time Window Risk Breakdown</div>
+  <div class="tbl-wrap" style="margin-bottom:16px">
+    <table class="tbl">
+      <thead><tr><th>Window</th><th>Vessels</th><th>Total TEU</th><th>Compatible Berths</th><th>Risk</th><th>Reason</th></tr></thead>
+      <tbody id="congestion-tbody"></tbody>
+    </table>
+  </div>
+  <div class="sh">Routing Recommendations</div>
+  <div id="routing-recs"></div>
+  <div class="sh">Risk Level Timeline</div>
+  <div class="panel"><div class="panel-body"><div style="height:240px" id="chart-congestion-timeline"></div></div></div>
+</div>
+
+<!-- ══════════════════ VESSELS ══════════════════ -->
+<div class="page" id="page-vessels">
+  <div class="page-hdr">
+    <div class="page-title">Vessel Schedule</div>
+    <div class="page-sub">All vessels in the 72-hour window — click a row for details</div>
+  </div>
+  <div style="display:flex;gap:10px;margin-bottom:14px;align-items:center;flex-wrap:wrap">
+    <div style="position:relative;flex:1;max-width:240px">
+      <svg width="13" height="13" viewBox="0 0 24 24" style="position:absolute;left:9px;top:50%;transform:translateY(-50%);color:var(--text3)"><use href="#ic-search"/></svg>
+      <input class="form-input" style="padding-left:30px" placeholder="Search vessel, origin…" oninput="filterVessels(this.value)" id="vessel-search">
+    </div>
+    <select class="form-select" style="max-width:140px" onchange="filterVesselSize(this.value)">
+      <option value="">All Sizes</option>
+      <option value="Large">Large</option>
+      <option value="Medium">Medium</option>
+      <option value="Small">Small</option>
+    </select>
+    <div style="flex:1"></div>
+    <button class="btn btn-primary btn-sm" onclick="openAddVesselModal()">
+      <svg width="12" height="12" viewBox="0 0 24 24"><use href="#ic-plus"/></svg>Add Vessel
+    </button>
+  </div>
+  <div class="tbl-wrap">
+    <table class="tbl">
+      <thead><tr><th>ID</th><th>Name</th><th>Origin</th><th>ETA</th><th>Size</th><th>TEU</th><th>Berths</th><th>Status</th><th>Actions</th></tr></thead>
+      <tbody id="vessel-tbody"></tbody>
+    </table>
+  </div>
+  <div class="sh">Fleet Analysis</div>
+  <div class="g2">
+    <div class="panel"><div class="panel-body"><div style="height:200px" id="chart-vessel-dist"></div></div></div>
+    <div class="panel"><div class="panel-body"><div style="height:200px" id="chart-vessel-teu"></div></div></div>
+  </div>
+</div>
+
+<!-- ══════════════════ BERTHS ══════════════════ -->
+<div class="page" id="page-berths">
+  <div class="page-hdr">
+    <div class="page-title">Berth &amp; Crane Management</div>
+    <div class="page-sub">Optimized assignment schedule and crane allocation for the 72-hour window</div>
+  </div>
+  <div class="g4" id="berth-kpis"></div>
+  <div class="sh">Optimized Assignment Schedule</div>
+  <div class="tbl-wrap" style="margin-bottom:16px">
+    <table class="tbl">
+      <thead><tr><th>Vessel</th><th>Size</th><th>TEU</th><th>Berth</th><th>Cranes</th><th>Start</th><th>End</th><th>Wait (h)</th><th>Status</th></tr></thead>
+      <tbody id="assignment-tbody"></tbody>
+    </table>
+  </div>
+  <div class="sh">72-Hour Berth Timeline</div>
+  <div class="panel"><div class="panel-body" id="berth-timeline"></div></div>
+  <div class="sh">Berth Load Analysis</div>
+  <div class="panel"><div class="panel-body"><div style="height:240px" id="chart-berth-load"></div></div></div>
+</div>
+
+<!-- ══════════════════ YARD ══════════════════ -->
+<div class="page" id="page-yard">
+  <div class="page-hdr">
+    <div class="page-title">Yard Capacity Management</div>
+    <div class="page-sub">Container dwell time, zone utilization, and overflow risk</div>
+  </div>
+  <div id="yard-alerts"></div>
+  <div class="sh">Zone Status</div>
+  <div class="g3" id="yard-zone-cards"></div>
+  <div class="sh">Utilization &amp; Dwell Analysis</div>
+  <div class="g2">
+    <div class="panel"><div class="panel-body"><div style="height:240px" id="chart-yard-util"></div></div></div>
+    <div class="panel"><div class="panel-body"><div style="height:240px" id="chart-dwell"></div></div></div>
+  </div>
+  <div class="sh">Edit Yard Data</div>
+  <div class="panel"><div class="panel-body">
+    <div class="tbl-wrap">
+      <table class="tbl">
+        <thead><tr><th>Zone</th><th>Capacity (TEU)</th><th>Occupied (TEU)</th><th>Avg Dwell (days)</th><th>Linked Berths</th><th>Save</th></tr></thead>
+        <tbody id="yard-edit-tbody"></tbody>
+      </table>
+    </div>
+  </div></div>
+</div>
+
+<!-- ══════════════════ OPS PLAN ══════════════════ -->
+<div class="page" id="page-plan">
+  <div class="page-hdr">
+    <div class="page-title">72-Hour Operations Plan</div>
+    <div class="page-sub">Shift supervisor brief — designed to be read in under 2 minutes</div>
+  </div>
+  <div class="g2" style="margin-bottom:0">
+    <div>
+      <div class="sh">A. Congestion Risk Summary</div>
+      <div class="tbl-wrap" style="margin-bottom:16px">
+        <table class="tbl">
+          <thead><tr><th>Period</th><th>Risk</th><th>Reason</th></tr></thead>
+          <tbody id="plan-risk-tbody"></tbody>
+        </table>
+      </div>
+      <div class="sh">C. Top 3 Priority Actions</div>
+      <div id="plan-actions"></div>
+    </div>
+    <div>
+      <div class="sh">B. Berth / Crane Quick Reference</div>
+      <div class="tbl-wrap" style="margin-bottom:16px">
+        <table class="tbl">
+          <thead><tr><th>Berth</th><th>16 Sep</th><th>17 Sep</th><th>18 Sep</th></tr></thead>
+          <tbody id="plan-berth-tbody"></tbody>
+        </table>
+      </div>
+      <div class="sh">D. Escalation Flags</div>
+      <div id="plan-escalations"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════ INCIDENTS ══════════════════ -->
+<div class="page" id="page-incidents">
+  <div class="page-hdr">
+    <div class="page-title">Historical Incidents</div>
+    <div class="page-sub">Past delays used to calibrate congestion predictions and risk models</div>
+  </div>
+  <div style="display:flex;margin-bottom:14px">
+    <div style="flex:1"></div>
+    <button class="btn btn-primary btn-sm" onclick="openAddIncidentModal()">
+      <svg width="12" height="12" viewBox="0 0 24 24"><use href="#ic-plus"/></svg>Log Incident
+    </button>
+  </div>
+  <div class="tbl-wrap" style="margin-bottom:16px">
+    <table class="tbl">
+      <thead><tr><th>ID</th><th>Date</th><th>Berth</th><th>Cause</th><th>Delay (h)</th><th>Vessels</th><th></th></tr></thead>
+      <tbody id="incident-tbody"></tbody>
+    </table>
+  </div>
+  <div class="sh">Delay Analysis</div>
+  <div class="g2">
+    <div class="panel"><div class="panel-body"><div style="height:240px" id="chart-incident-berth"></div></div></div>
+    <div class="panel"><div class="panel-body"><div style="height:240px" id="chart-incident-cause"></div></div></div>
+  </div>
+</div>
+
+<!-- ══════════════════ DATA EDIT ══════════════════ -->
+<div class="page" id="page-data">
+  <div class="page-hdr">
+    <div class="page-title">Edit Port Data</div>
+    <div class="page-sub">All changes persist in your browser session until cleared</div>
+  </div>
+  <div class="tabs-bar">
+    <button class="tab-btn active" onclick="switchDataTab('berth-data',this)">Berth Capacity</button>
+    <button class="tab-btn" onclick="switchDataTab('vessel-data',this)">Vessel Schedule</button>
+    <button class="tab-btn" onclick="switchDataTab('yard-data',this)">Yard Capacity</button>
+    <button class="tab-btn" onclick="switchDataTab('incident-data',this)">Incidents</button>
+  </div>
+  <div class="tab-pane active" id="tab-berth-data">
+    <div class="tbl-wrap">
+      <table class="tbl">
+        <thead><tr><th>Berth</th><th>Max Size</th><th>Cranes</th><th>Rate (h/1000 TEU)</th><th>Status</th><th>Next Free</th><th>Save</th></tr></thead>
+        <tbody id="berth-edit-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+  <div class="tab-pane" id="tab-vessel-data">
+    <div class="tbl-wrap">
+      <table class="tbl">
+        <thead><tr><th>ID</th><th>Name</th><th>Origin</th><th>ETA</th><th>Size</th><th>TEU</th><th>Berths</th><th>Save</th></tr></thead>
+        <tbody id="vessel-edit-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+  <div class="tab-pane" id="tab-yard-data">
+    <div class="tbl-wrap">
+      <table class="tbl">
+        <thead><tr><th>Zone</th><th>Capacity</th><th>Occupied</th><th>Dwell (days)</th><th>Linked Berths</th><th>Save</th></tr></thead>
+        <tbody id="yard-data-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+  <div class="tab-pane" id="tab-incident-data">
+    <div class="tbl-wrap">
+      <table class="tbl">
+        <thead><tr><th>ID</th><th>Date</th><th>Berth</th><th>Cause</th><th>Delay (h)</th><th>Vessels</th><th>Save</th></tr></thead>
+        <tbody id="incident-edit-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+</div><!-- /content -->
+</div><!-- /shell -->
+
+<!-- ═══ MODALS ════════════════════════════════════════════════ -->
+<div class="modal-bg" id="modal-vessel">
+  <div class="modal">
+    <div class="modal-title">
+      <svg width="16" height="16" viewBox="0 0 24 24"><use href="#ic-ship"/></svg>
+      <span id="modal-vessel-title">Add Vessel</span>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Vessel ID</label><input class="form-input" id="mv-id" placeholder="V113"></div>
+      <div class="form-group"><label class="form-label">Vessel Name</label><input class="form-input" id="mv-name" placeholder="Pacific Star"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Origin Port</label><input class="form-input" id="mv-origin" placeholder="Shanghai"></div>
+      <div class="form-group"><label class="form-label">ETA</label><input class="form-input" type="datetime-local" id="mv-eta"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Size</label>
+        <select class="form-select" id="mv-size"><option>Large</option><option>Medium</option><option>Small</option></select>
+      </div>
+      <div class="form-group"><label class="form-label">Containers (TEU)</label><input class="form-input" type="number" id="mv-containers" placeholder="3000"></div>
+    </div>
+    <div class="form-group"><label class="form-label">Compatible Berths</label><input class="form-input" id="mv-berths" placeholder="B1,B2"></div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-vessel')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveVessel()">Save Vessel</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-bg" id="modal-incident">
+  <div class="modal">
+    <div class="modal-title">
+      <svg width="16" height="16" viewBox="0 0 24 24"><use href="#ic-history"/></svg>
+      Log Incident
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Incident ID</label><input class="form-input" id="mi-id" placeholder="I006"></div>
+      <div class="form-group"><label class="form-label">Date</label><input class="form-input" type="date" id="mi-date"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Berth</label>
+        <select class="form-select" id="mi-berth"><option>B1</option><option>B2</option><option>B3</option><option>B4</option></select>
+      </div>
+      <div class="form-group"><label class="form-label">Delay (hours)</label><input class="form-input" type="number" id="mi-delay" placeholder="12"></div>
+    </div>
+    <div class="form-group" style="margin-bottom:12px"><label class="form-label">Cause</label><input class="form-input" id="mi-cause" placeholder="Crane breakdown"></div>
+    <div class="form-group"><label class="form-label">Vessels Affected</label><input class="form-input" type="number" id="mi-vessels" placeholder="2"></div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-incident')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveIncident()">Log Incident</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-bg" id="modal-vessel-detail">
+  <div class="modal">
+    <div class="modal-title">
+      <svg width="16" height="16" viewBox="0 0 24 24"><use href="#ic-ship"/></svg>
+      <span id="mvd-title"></span>
+    </div>
+    <div id="mvd-body"></div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-vessel-detail')">Close</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast">
+  <svg width="13" height="13" viewBox="0 0 24 24"><use href="#ic-check"/></svg>
+  <span id="toast-msg"></span>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════════
+//  SVG ICON HELPER
+// ═══════════════════════════════════════════════════════════
+function icon(id, size=14) {
+  return `<svg width="${size}" height="${size}" viewBox="0 0 24 24" style="flex-shrink:0"><use href="#ic-${id}"/></svg>`;
+}
+
+// ═══════════════════════════════════════════════════════════
+//  DEFAULT DATA
+// ═══════════════════════════════════════════════════════════
+const DEFAULT_VESSELS = [
+  {vessel_id:"V101",vessel_name:"Pacific Voyager",origin_port:"Shanghai",eta:"2026-09-16T02:00",vessel_size:"Large",containers:4500,berth_compatibility:"B1,B2"},
+  {vessel_id:"V102",vessel_name:"Ocean Star",origin_port:"Busan",eta:"2026-09-16T05:00",vessel_size:"Medium",containers:2800,berth_compatibility:"B1,B2,B3"},
+  {vessel_id:"V103",vessel_name:"Atlantic Pearl",origin_port:"Singapore",eta:"2026-09-16T06:30",vessel_size:"Large",containers:4200,berth_compatibility:"B1,B2"},
+  {vessel_id:"V104",vessel_name:"Northern Light",origin_port:"Ningbo",eta:"2026-09-16T09:00",vessel_size:"Small",containers:1500,berth_compatibility:"B3,B4"},
+  {vessel_id:"V105",vessel_name:"Golden Horizon",origin_port:"Hong Kong",eta:"2026-09-16T10:00",vessel_size:"Medium",containers:3000,berth_compatibility:"B1,B2,B3"},
+  {vessel_id:"V106",vessel_name:"Silver Wave",origin_port:"Kaohsiung",eta:"2026-09-16T14:00",vessel_size:"Large",containers:4700,berth_compatibility:"B1,B2"},
+  {vessel_id:"V107",vessel_name:"Blue Marlin",origin_port:"Tokyo",eta:"2026-09-17T01:00",vessel_size:"Medium",containers:2600,berth_compatibility:"B2,B3"},
+  {vessel_id:"V108",vessel_name:"Coral Express",origin_port:"Shenzhen",eta:"2026-09-17T03:00",vessel_size:"Small",containers:1200,berth_compatibility:"B3,B4"},
+  {vessel_id:"V109",vessel_name:"Harbor Queen",origin_port:"Qingdao",eta:"2026-09-17T07:00",vessel_size:"Large",containers:4300,berth_compatibility:"B1,B2"},
+  {vessel_id:"V110",vessel_name:"Sea Falcon",origin_port:"Xiamen",eta:"2026-09-17T08:00",vessel_size:"Medium",containers:2900,berth_compatibility:"B1,B2,B3"},
+  {vessel_id:"V111",vessel_name:"Trade Wind",origin_port:"Manila",eta:"2026-09-17T12:00",vessel_size:"Small",containers:1400,berth_compatibility:"B3,B4"},
+  {vessel_id:"V112",vessel_name:"Pacific Dawn",origin_port:"Yokohama",eta:"2026-09-18T04:00",vessel_size:"Large",containers:4600,berth_compatibility:"B1,B2"},
+];
+const DEFAULT_BERTHS = [
+  {berth_id:"B1",max_vessel_size:"Large",cranes_available:3,avg_handling_hours_per_1000:4,current_status:"Occupied",next_free_time:"2026-09-16T04:00"},
+  {berth_id:"B2",max_vessel_size:"Large",cranes_available:2,avg_handling_hours_per_1000:5,current_status:"Occupied",next_free_time:"2026-09-16T08:00"},
+  {berth_id:"B3",max_vessel_size:"Medium",cranes_available:2,avg_handling_hours_per_1000:4,current_status:"Free",next_free_time:"2026-09-16T00:00"},
+  {berth_id:"B4",max_vessel_size:"Small",cranes_available:1,avg_handling_hours_per_1000:3,current_status:"Free",next_free_time:"2026-09-16T00:00"},
+];
+const DEFAULT_YARDS = [
+  {yard_zone:"Y1",total_capacity_teu:6000,current_occupied_teu:5200,avg_dwell_time_days:4.5,linked_berths:"B1,B2"},
+  {yard_zone:"Y2",total_capacity_teu:4000,current_occupied_teu:2600,avg_dwell_time_days:3.8,linked_berths:"B2,B3"},
+  {yard_zone:"Y3",total_capacity_teu:2500,current_occupied_teu:1100,avg_dwell_time_days:3.0,linked_berths:"B3,B4"},
+];
+const DEFAULT_INCIDENTS = [
+  {incident_id:"I001",date:"2026-06-12",berth_id:"B1",cause:"Crane breakdown",delay_hours:14,vessels_affected:3},
+  {incident_id:"I002",date:"2026-07-03",berth_id:"B2",cause:"Weather (typhoon warning)",delay_hours:22,vessels_affected:5},
+  {incident_id:"I003",date:"2026-07-20",berth_id:"B1",cause:"Yard overflow (Y1 full)",delay_hours:9,vessels_affected:2},
+  {incident_id:"I004",date:"2026-08-05",berth_id:"B3",cause:"Customs documentation delay",delay_hours:6,vessels_affected:1},
+  {incident_id:"I005",date:"2026-08-22",berth_id:"B2",cause:"Multiple large vessels same window",delay_hours:18,vessels_affected:4},
+];
+
+// ═══════════════════════════════════════════════════════════
+//  STATE
+// ═══════════════════════════════════════════════════════════
+let state = {vessels:[], berths:[], yards:[], incidents:[]};
+let editingVesselId = null;
+
+function loadState() {
+  const saved = sessionStorage.getItem('portOpsState');
+  if (saved) { try { state = JSON.parse(saved); showToast('Session restored'); } catch(e) { resetState(); } }
+  else resetState();
+}
+function resetState() {
+  state = {
+    vessels:   JSON.parse(JSON.stringify(DEFAULT_VESSELS)),
+    berths:    JSON.parse(JSON.stringify(DEFAULT_BERTHS)),
+    yards:     JSON.parse(JSON.stringify(DEFAULT_YARDS)),
+    incidents: JSON.parse(JSON.stringify(DEFAULT_INCIDENTS)),
+  };
+}
+function saveToSession() {
+  sessionStorage.setItem('portOpsState', JSON.stringify(state));
+  const ind = document.getElementById('save-indicator');
+  ind.style.opacity='1'; setTimeout(()=>ind.style.opacity='0', 2500);
+  showToast('Session saved');
+}
+function showToast(msg) {
+  document.getElementById('toast-msg').textContent = msg;
+  const t = document.getElementById('toast');
+  t.classList.add('show'); setTimeout(()=>t.classList.remove('show'), 2800);
+}
+
+// ═══════════════════════════════════════════════════════════
+//  NAVIGATION
+// ═══════════════════════════════════════════════════════════
+function showPage(name) {
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  document.getElementById('page-'+name).classList.add('active');
+  document.getElementById('nav-'+name).classList.add('active');
+  renderPage(name);
+}
+function renderPage(name) {
+  const fn = {overview:renderOverview,congestion:renderCongestion,vessels:renderVessels,
+    berths:renderBerths,yard:renderYard,plan:renderPlan,incidents:renderIncidents,data:renderDataPage};
+  if (fn[name]) fn[name]();
+}
+
+// ═══════════════════════════════════════════════════════════
+//  CLOCK
+// ═══════════════════════════════════════════════════════════
+setInterval(()=>{ document.getElementById('clock').textContent = new Date().toLocaleTimeString('en-GB',{hour12:false}); }, 1000);
+document.getElementById('clock').textContent = new Date().toLocaleTimeString('en-GB',{hour12:false});
+
+// ═══════════════════════════════════════════════════════════
+//  CORE ENGINE
+// ═══════════════════════════════════════════════════════════
+function parseETA(eta) { return new Date(eta); }
+function fmtDT(d) {
+  if (!(d instanceof Date)) d = new Date(d);
+  return d.toLocaleDateString('en-GB',{day:'2-digit',month:'short'})+' '+
+         d.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit',hour12:false});
+}
+function fmtTime(d) {
+  if (!(d instanceof Date)) d = new Date(d);
+  return d.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit',hour12:false});
+}
+function addHours(d,h){ return new Date(d.getTime()+h*3600000); }
+function diffHours(a,b){ return (b-a)/3600000; }
+function calcHandlingHours(v,b){ return (v.containers/1000)*b.avg_handling_hours_per_1000*(3/b.cranes_available); }
+function berthCompatible(b,v) {
+  const compat = v.berth_compatibility.split(',').map(s=>s.trim());
+  if (!compat.includes(b.berth_id)) return false;
+  if (b.max_vessel_size==='Small' && v.vessel_size!=='Small') return false;
+  if (b.max_vessel_size==='Medium' && v.vessel_size==='Large') return false;
+  return true;
+}
+function computeAssignments() {
+  const vessels = [...state.vessels].sort((a,b)=>parseETA(a.eta)-parseETA(b.eta));
+  const free = {};
+  state.berths.forEach(b=>{ free[b.berth_id]=new Date(b.next_free_time); });
+  return vessels.map(v=>{
+    const eta = parseETA(v.eta);
+    const compat = state.berths.filter(b=>berthCompatible(b,v));
+    if (!compat.length) return {...v,berth:'—',cranes:0,start:null,end:null,wait:0,status:'No compatible berth'};
+    let best=null, bestStart=null;
+    compat.forEach(b=>{ const s=free[b.berth_id]>eta?free[b.berth_id]:eta; if(!best||s<bestStart){best=b;bestStart=s;} });
+    const start = free[best.berth_id]>eta?free[best.berth_id]:eta;
+    const handling = calcHandlingHours(v,best);
+    const end = addHours(start,handling);
+    const wait = Math.max(0,diffHours(eta,start));
+    free[best.berth_id]=end;
+    const status = wait<0.5?'On schedule':wait<2?'Minor wait':'Delay — action needed';
+    return {...v,berth:best.berth_id,cranes:best.cranes_available,start,end,wait,status,handling};
+  });
+}
+function computeRisk() {
+  return [
+    {label:'16 Sep 02:00–09:00',vessels:['V101','V102','V103'],risk:'High',reason:'V101 arrives before B1 clears (04:00). V103 also needs B1/B2. 2 large vessels, 1 compatible berth before 08:00.'},
+    {label:'16 Sep 09:00–18:00',vessels:['V104','V105','V106'],risk:'Medium',reason:'V106 (4,700 TEU) faces 4.8-hr wait. Y1 at 87% — overflow risk before end of shift.'},
+    {label:'17 Sep 01:00–12:00',vessels:['V107','V108','V109','V110','V111'],risk:'Medium',reason:'V109+V110 arrive within 1hr. Mirrors incident I005 (18-hr delay). Manageable if V110 uses B3.'},
+    {label:'18 Sep 04:00',vessels:['V112'],risk:'Low',reason:'Single large vessel. B1 clear if prior schedule holds. Escalates if upstream delay cascades.'},
+  ];
+}
+function getYardUtil(y){ return Math.round(y.current_occupied_teu/y.total_capacity_teu*100); }
+function yardColor(p){ return p>=80?'red':p>=60?'yellow':'green'; }
+function riskBadge(r){
+  return r==='High'?'<span class="badge b-red">High</span>':
+         r==='Medium'?'<span class="badge b-yellow">Medium</span>':
+         '<span class="badge b-green">Low</span>';
+}
+function statusBadge(s){
+  if (s.includes('No'))     return '<span class="badge b-gray">No Berth</span>';
+  if (s.includes('action')) return '<span class="badge b-red">Delay</span>';
+  if (s.includes('Minor'))  return '<span class="badge b-yellow">Minor Wait</span>';
+  return '<span class="badge b-green">On Schedule</span>';
+}
+function getEscalations(){
+  const escs=[];
+  const y1=state.yards.find(y=>y.yard_zone==='Y1');
+  if(y1&&getYardUtil(y1)>=80) escs.push({level:'red',title:'Y1 Yard Critical — '+getYardUtil(y1)+'% Utilized',desc:'Incoming large-vessel cargo will overflow. Ref. I003: 9-hr delay.',owner:'Yard Manager — activate extended gate ASAP'});
+  computeAssignments().filter(a=>a.wait>=2).forEach(a=>escs.push({level:'red',title:`${a.vessel_name} (${a.vessel_id}) — ${a.wait.toFixed(1)}h berth wait`,desc:`${a.containers.toLocaleString()} TEU affected. Slow-steam recommended.`,owner:'VTS / Vessel Agent — issue slow-steam instruction'}));
+  if(state.incidents.some(i=>i.berth_id==='B1')) escs.push({level:'yellow',title:'B1 Crane Risk — Historical Breakdown Record',desc:'B1 had crane failure (I001, 14-hr delay). Schedule preventive inspection.',owner:'Equipment Superintendent'});
+  return escs;
+}
+
+// ═══════════════════════════════════════════════════════════
+//  CHARTS
+// ═══════════════════════════════════════════════════════════
+const charts={};
+function getChart(id){
+  const el=document.getElementById(id); if(!el) return null;
+  if(!charts[id]) charts[id]=echarts.init(el,'dark');
+  return charts[id];
+}
+const CHART_BG='transparent';
+const AX={color:'#4a5568'};
+const SPLIT={lineStyle:{color:'#1c2537'}};
+
+// ═══════════════════════════════════════════════════════════
+//  OVERVIEW
+// ═══════════════════════════════════════════════════════════
+function renderOverview(){
+  const vs=state.vessels;
+  const lg=vs.filter(v=>v.vessel_size==='Large').length;
+  const md=vs.filter(v=>v.vessel_size==='Medium').length;
+  const sm=vs.filter(v=>v.vessel_size==='Small').length;
+  document.getElementById('kpi-vessels').textContent=vs.length;
+  document.getElementById('kpi-vessels-sub').textContent=`${lg} Large · ${md} Medium · ${sm} Small`;
+  const asgn=computeAssignments();
+  document.getElementById('kpi-ontime').textContent=`${asgn.filter(a=>a.wait<0.5).length} / ${asgn.length}`;
+  const y1=state.yards.find(y=>y.yard_zone==='Y1');
+  if(y1) document.getElementById('kpi-y1').textContent=getYardUtil(y1)+'%';
+
+  // TEU chart
+  const hourLabels=vs.map(v=>{const d=new Date(v.eta);return(d.getDate()===16?'':'17 ')+fmtTime(d);});
+  const c=getChart('chart-teu');
+  if(c) c.setOption({backgroundColor:CHART_BG,tooltip:{trigger:'axis'},
+    xAxis:{type:'category',data:hourLabels,axisLabel:{...AX,fontSize:10,rotate:12}},
+    yAxis:{type:'value',name:'TEU',nameTextStyle:AX,axisLabel:AX,splitLine:SPLIT},
+    series:[{type:'bar',data:vs.map(v=>({value:v.containers,itemStyle:{color:v.vessel_size==='Large'?'#f04444':v.vessel_size==='Medium'?'#f5a623':'#22c55e'}})),
+      barMaxWidth:32,label:{show:true,position:'top',color:'#4a5568',fontSize:9,formatter:'{c}'}}],
+    grid:{left:50,right:16,top:28,bottom:52}});
+
+  // Berth status
+  let bsHtml='';
+  state.berths.forEach(b=>{
+    const free=b.current_status==='Free';
+    bsHtml+=`<div style="display:flex;align-items:center;justify-content:space-between;padding:11px 0;border-bottom:1px solid var(--border)">
+      <div>
+        <div style="font-weight:700;color:var(--text);font-size:13px;margin-bottom:2px">${b.berth_id}</div>
+        <div style="font-size:11px;color:var(--text3)">${b.max_vessel_size} · ${b.cranes_available} cranes · ${b.avg_handling_hours_per_1000}h/1000 TEU</div>
+      </div>
+      <div style="text-align:right">
+        ${free?'<span class="badge b-green">Free</span>':'<span class="badge b-red">Occupied</span>'}
+        <div style="font-size:10px;color:var(--text3);margin-top:3px">Free: ${fmtDT(b.next_free_time)}</div>
+      </div></div>`;
+  });
+  document.getElementById('berth-status-overview').innerHTML=bsHtml;
+
+  // Yard overview
+  let yHtml='';
+  state.yards.forEach(y=>{
+    const pct=getYardUtil(y), col=yardColor(pct);
+    const colVar=col==='red'?'var(--red)':col==='yellow'?'var(--yellow)':'var(--green)';
+    yHtml+=`<div style="margin-bottom:14px">
+      <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:5px">
+        <span style="font-weight:700;color:var(--text);font-size:13px">${y.yard_zone}</span>
+        <span style="font-size:11px;color:var(--text3)">${y.current_occupied_teu.toLocaleString()} / ${y.total_capacity_teu.toLocaleString()} TEU &nbsp;<strong style="color:${colVar}">${pct}%</strong></span>
+      </div>
+      <div class="prog-wrap"><div class="prog-bar pb-${col}" style="width:${pct}%"></div></div>
+      <div style="font-size:10px;color:var(--text3);margin-top:4px">Dwell: ${y.avg_dwell_time_days}d · Linked: ${y.linked_berths}</div>
+    </div>`;
+  });
+  document.getElementById('yard-overview').innerHTML=yHtml;
+
+  // Escalations
+  const escs=getEscalations();
+  document.getElementById('escalation-overview').innerHTML=escs.length
+    ? escs.map(e=>`<div class="esc-row esc-${e.level}">
+        <div class="esc-icon">${icon(e.level==='red'?'x-circle':'alert-triangle',16)}</div>
+        <div><div class="esc-title">${e.title}</div><div class="esc-desc">${e.desc}</div><div class="esc-owner">Owner: ${e.owner}</div></div>
+      </div>`).join('')
+    : '<div style="color:var(--text3);font-size:12px">No active escalations.</div>';
+}
+
+// ═══════════════════════════════════════════════════════════
+//  CONGESTION
+// ═══════════════════════════════════════════════════════════
+function renderCongestion(){
+  const windows=computeRisk();
+  const y1=state.yards.find(y=>y.yard_zone==='Y1');
+  let alertHtml='';
+  windows.filter(w=>w.risk==='High').forEach(w=>{
+    alertHtml+=`<div class="alert al-red">${icon('alert-triangle')}<div><strong>${w.label}</strong> — ${w.reason}</div></div>`;
+  });
+  if(y1&&getYardUtil(y1)>=80) alertHtml+=`<div class="alert al-yellow">${icon('alert-triangle')}<div><strong>Y1 Yard at ${getYardUtil(y1)}%</strong> — Yard overflow imminent. Activate truck-gate clearing protocol now.</div></div>`;
+  document.getElementById('congestion-alerts').innerHTML=alertHtml;
+
+  document.getElementById('congestion-tbody').innerHTML=windows.map(w=>{
+    const vnames=w.vessels.map(id=>`<span class="badge b-gray" style="margin:1px">${id}</span>`).join(' ');
+    const teu=w.vessels.reduce((s,id)=>{const v=state.vessels.find(x=>x.vessel_id===id);return s+(v?v.containers:0);},0);
+    return `<tr><td style="white-space:nowrap">${w.label}</td><td>${vnames}</td><td>${teu.toLocaleString()}</td><td style="color:var(--text3)">—</td><td>${riskBadge(w.risk)}</td><td style="color:var(--text3)">${w.reason}</td></tr>`;
+  }).join('');
+
+  const recs=[
+    {rank:1,vessel:'V101 — Pacific Voyager',issue:'Arrives 02:00; B1 free at 04:00, B2 at 08:00',rec:'Issue slow-steam instruction — push ETA to 04:15. Eliminates 2-hr anchor idle.',teu:4500,saved:'~2 hrs',color:'var(--red)'},
+    {rank:2,vessel:'V106 — Silver Wave',issue:'4,700 TEU vessel; 4.8-hr wait at current ETA 14:00',rec:'Delay arrival to 19:00–20:00 via slow-steam. Or split transshipment cargo to B3 via lighter.',teu:4700,saved:'~4–6 hrs',color:'var(--yellow)'},
+    {rank:3,vessel:'V109 + V110',issue:'Arrive within 1hr on 17 Sep — mirrors I005 incident',rec:'Route V110 (Medium, B3-compatible) to B3. Stagger arrivals 4hrs.',teu:7200,saved:'~6–10 hrs',color:'var(--yellow)'},
+    {rank:4,vessel:'All B1/B2 vessels',issue:'Y1 yard 87% — will overflow before end of shift',rec:'Activate extended truck-gate hours on 16 Sep. Release containers >4-day dwell. Overflow to Y2.',teu:0,saved:'Prevents 9+ hr delay',color:'var(--accent)'},
+  ];
+  document.getElementById('routing-recs').innerHTML=recs.map(r=>`
+    <div style="display:flex;gap:14px;padding:14px;border-radius:8px;background:var(--surface2);border:1px solid var(--border);margin-bottom:10px;border-left:3px solid ${r.color}">
+      <div style="background:${r.color};color:#0a0d14;font-weight:800;font-size:12px;border-radius:50%;width:24px;height:24px;display:flex;align-items:center;justify-content:center;flex-shrink:0">${r.rank}</div>
+      <div style="flex:1">
+        <div style="font-weight:700;color:var(--text);font-size:13px;margin-bottom:3px">${r.vessel}</div>
+        <div style="font-size:11px;color:var(--text3);margin-bottom:6px">${r.issue}</div>
+        <div style="font-size:12px;color:var(--text2)">${r.rec}</div>
+        <div style="display:flex;gap:16px;margin-top:8px;font-size:10px;color:var(--text3)">
+          ${r.teu>0?`<span>${r.teu.toLocaleString()} TEU affected</span>`:''}
+          <span>Saved: <strong style="color:var(--green)">${r.saved}</strong></span>
+        </div>
+      </div>
+    </div>`).join('');
+
+  const c=getChart('chart-congestion-timeline');
+  if(c){
+    const scores=windows.map(w=>w.risk==='High'?3:w.risk==='Medium'?2:1);
+    c.setOption({backgroundColor:CHART_BG,tooltip:{trigger:'axis'},
+      xAxis:{type:'category',data:windows.map(w=>w.label),axisLabel:{...AX,fontSize:10,rotate:8}},
+      yAxis:{type:'value',min:0,max:3,axisLabel:{...AX,formatter:v=>['','Low','Med','High'][v]||''},splitLine:SPLIT},
+      series:[{type:'bar',data:scores.map((v,i)=>({value:v,itemStyle:{color:['#f04444','#f5a623','#f5a623','#22c55e'][i]||'#22c55e'}})),barWidth:48,
+        label:{show:true,position:'top',color:'#4a5568',formatter:p=>['','Low','Medium','High'][p.value]||''}}],
+      grid:{left:60,right:16,top:20,bottom:80}});
+  }
+}
+
+// ═══════════════════════════════════════════════════════════
+//  VESSELS
+// ═══════════════════════════════════════════════════════════
+let vesselFilter='', vesselSizeFilter='';
+function renderVessels(){
+  let vs=state.vessels;
+  if(vesselFilter) vs=vs.filter(v=>v.vessel_name.toLowerCase().includes(vesselFilter)||v.vessel_id.toLowerCase().includes(vesselFilter)||v.origin_port.toLowerCase().includes(vesselFilter));
+  if(vesselSizeFilter) vs=vs.filter(v=>v.vessel_size===vesselSizeFilter);
+  const am={}; computeAssignments().forEach(a=>am[a.vessel_id]=a);
+  document.getElementById('vessel-tbody').innerHTML=vs.map(v=>{
+    const a=am[v.vessel_id];
+    return `<tr style="cursor:pointer" onclick="showVesselDetail('${v.vessel_id}')">
+      <td><span class="badge b-gray">${v.vessel_id}</span></td>
+      <td style="font-weight:600;color:var(--text)">${v.vessel_name}</td>
+      <td style="color:var(--text2)">${v.origin_port}</td>
+      <td class="mono">${fmtDT(v.eta)}</td>
+      <td>${v.vessel_size==='Large'?'<span class="badge b-red">Large</span>':v.vessel_size==='Medium'?'<span class="badge b-yellow">Medium</span>':'<span class="badge b-green">Small</span>'}</td>
+      <td class="mono">${v.containers.toLocaleString()}</td>
+      <td style="font-size:11px;color:var(--text3)">${v.berth_compatibility}</td>
+      <td>${a?statusBadge(a.status):''}</td>
+      <td style="white-space:nowrap">
+        <button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();editVessel('${v.vessel_id}')">Edit</button>
+        <button class="btn btn-danger btn-sm" onclick="event.stopPropagation();deleteVessel('${v.vessel_id}')" style="margin-left:4px">Del</button>
+      </td>
+    </tr>`;
+  }).join('') || `<tr><td colspan="9" style="text-align:center;color:var(--text3);padding:20px">No vessels match filter</td></tr>`;
+
+  const c1=getChart('chart-vessel-dist');
+  if(c1){
+    const lg=state.vessels.filter(v=>v.vessel_size==='Large').length;
+    const md=state.vessels.filter(v=>v.vessel_size==='Medium').length;
+    const sm=state.vessels.filter(v=>v.vessel_size==='Small').length;
+    c1.setOption({backgroundColor:CHART_BG,tooltip:{trigger:'item'},
+      title:{text:'Size Distribution',textStyle:{color:'#4a5568',fontSize:11},left:'center',top:4},
+      series:[{type:'pie',radius:['38%','65%'],data:[
+        {name:'Large',value:lg,itemStyle:{color:'#f04444'}},
+        {name:'Medium',value:md,itemStyle:{color:'#f5a623'}},
+        {name:'Small',value:sm,itemStyle:{color:'#22c55e'}},
+      ],label:{color:'#4a5568',fontSize:11}}]});
+  }
+  const c2=getChart('chart-vessel-teu');
+  if(c2){
+    const srt=[...state.vessels].sort((a,b)=>b.containers-a.containers).slice(0,8);
+    c2.setOption({backgroundColor:CHART_BG,tooltip:{trigger:'axis'},
+      title:{text:'TEU by Vessel (Top 8)',textStyle:{color:'#4a5568',fontSize:11},left:'center',top:4},
+      xAxis:{type:'category',data:srt.map(v=>v.vessel_id),axisLabel:{...AX,fontSize:10}},
+      yAxis:{type:'value',axisLabel:AX,splitLine:SPLIT},
+      series:[{type:'bar',data:srt.map(v=>({value:v.containers,itemStyle:{color:v.vessel_size==='Large'?'#f04444':v.vessel_size==='Medium'?'#f5a623':'#22c55e'}})),barMaxWidth:28}],
+      grid:{left:50,right:10,top:36,bottom:36}});
+  }
+}
+function filterVessels(val){vesselFilter=val.toLowerCase();renderVessels();}
+function filterVesselSize(val){vesselSizeFilter=val;renderVessels();}
+
+function showVesselDetail(id){
+  const v=state.vessels.find(x=>x.vessel_id===id); if(!v) return;
+  const a=computeAssignments().find(x=>x.vessel_id===id);
+  document.getElementById('mvd-title').textContent=v.vessel_name+' ('+v.vessel_id+')';
+  document.getElementById('mvd-body').innerHTML=`
+    <div class="g2" style="margin-bottom:12px">
+      <div><div class="form-label">Origin Port</div><div style="color:var(--text);font-size:14px;margin-top:3px">${v.origin_port}</div></div>
+      <div><div class="form-label">ETA</div><div style="color:var(--text);font-size:14px;margin-top:3px">${fmtDT(v.eta)}</div></div>
+      <div><div class="form-label">Size</div><div style="margin-top:3px">${v.vessel_size==='Large'?'<span class="badge b-red">Large</span>':v.vessel_size==='Medium'?'<span class="badge b-yellow">Medium</span>':'<span class="badge b-green">Small</span>'}</div></div>
+      <div><div class="form-label">Cargo (TEU)</div><div style="color:var(--text);font-size:14px;margin-top:3px">${v.containers.toLocaleString()}</div></div>
+      <div><div class="form-label">Compat. Berths</div><div style="color:var(--text);margin-top:3px">${v.berth_compatibility}</div></div>
+      <div><div class="form-label">Status</div><div style="margin-top:3px">${a?statusBadge(a.status):'—'}</div></div>
+    </div>
+    ${a&&a.start?`<div class="alert al-blue">${icon('crane')}<div><strong>Assigned: ${a.berth}</strong> &nbsp;|&nbsp; Start: ${fmtDT(a.start)} &nbsp;|&nbsp; End: ${fmtDT(a.end)}<br>Handling: ${a.handling?a.handling.toFixed(1):0}h &nbsp;|&nbsp; Wait: ${a.wait.toFixed(1)}h &nbsp;|&nbsp; Cranes: ${a.cranes}</div></div>`:''}
+    ${a&&a.wait>=2?`<div class="alert al-red">${icon('alert-triangle')}<div>This vessel faces a <strong>${a.wait.toFixed(1)}-hour berth wait</strong>. Slow-steam or holding pattern recommended.</div></div>`:''}`;
+  openModal('modal-vessel-detail');
+}
+
+function openAddVesselModal(){
+  editingVesselId=null;
+  document.getElementById('modal-vessel-title').textContent='Add Vessel';
+  ['mv-id','mv-name','mv-origin','mv-eta','mv-containers','mv-berths'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('mv-size').value='Large';
+  openModal('modal-vessel');
+}
+function editVessel(id){
+  editingVesselId=id;
+  const v=state.vessels.find(x=>x.vessel_id===id); if(!v) return;
+  document.getElementById('modal-vessel-title').textContent='Edit Vessel';
+  document.getElementById('mv-id').value=v.vessel_id;
+  document.getElementById('mv-name').value=v.vessel_name;
+  document.getElementById('mv-origin').value=v.origin_port;
+  document.getElementById('mv-eta').value=v.eta.replace(' ','T').slice(0,16);
+  document.getElementById('mv-size').value=v.vessel_size;
+  document.getElementById('mv-containers').value=v.containers;
+  document.getElementById('mv-berths').value=v.berth_compatibility;
+  openModal('modal-vessel');
+}
+function saveVessel(){
+  const nv={vessel_id:document.getElementById('mv-id').value.trim(),vessel_name:document.getElementById('mv-name').value.trim(),
+    origin_port:document.getElementById('mv-origin').value.trim(),eta:document.getElementById('mv-eta').value,
+    vessel_size:document.getElementById('mv-size').value,containers:parseInt(document.getElementById('mv-containers').value)||0,
+    berth_compatibility:document.getElementById('mv-berths').value.trim()};
+  if(!nv.vessel_id||!nv.vessel_name){showToast('Fill required fields');return;}
+  if(editingVesselId){const i=state.vessels.findIndex(v=>v.vessel_id===editingVesselId);if(i>=0) state.vessels[i]=nv;}
+  else{if(state.vessels.find(v=>v.vessel_id===nv.vessel_id)){showToast('Vessel ID exists');return;}state.vessels.push(nv);}
+  saveToSession();closeModal('modal-vessel');renderVessels();showToast(editingVesselId?'Vessel updated':'Vessel added');
+}
+function deleteVessel(id){
+  if(!confirm('Delete vessel '+id+'?')) return;
+  state.vessels=state.vessels.filter(v=>v.vessel_id!==id);
+  saveToSession();renderVessels();showToast('Vessel deleted');
+}
+
+// ═══════════════════════════════════════════════════════════
+//  BERTHS
+// ═══════════════════════════════════════════════════════════
+function renderBerths(){
+  const BCOLORS={'B1':'#3b7df8','B2':'#a78bfa','B3':'#22c55e','B4':'#f5a623'};
+  document.getElementById('berth-kpis').innerHTML=state.berths.map(b=>{
+    const free=b.current_status==='Free';
+    return `<div class="card card-accent ${free?'ca-green':'ca-red'}">
+      <div class="card-label">${b.berth_id} — ${b.max_vessel_size}</div>
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+        <span class="card-val">${b.cranes_available}</span>
+        <span style="font-size:11px;color:var(--text3)">cranes</span>
+        <span style="margin-left:auto">${free?'<span class="badge b-green">Free</span>':'<span class="badge b-red">Busy</span>'}</span>
+      </div>
+      <div class="card-sub">Rate: ${b.avg_handling_hours_per_1000}h/1000 TEU</div>
+      <div class="card-sub">Free: ${fmtDT(b.next_free_time)}</div>
+    </div>`;
+  }).join('');
+
+  const asgn=computeAssignments();
+  document.getElementById('assignment-tbody').innerHTML=asgn.map(a=>{
+    const wc=a.wait>=2?'var(--red)':a.wait>=0.5?'var(--yellow)':'var(--green)';
+    return `<tr>
+      <td style="font-weight:600;color:var(--text)">${a.vessel_name} <span style="color:var(--text3);font-size:10px">${a.vessel_id}</span></td>
+      <td>${a.vessel_size==='Large'?'<span class="badge b-red">Large</span>':a.vessel_size==='Medium'?'<span class="badge b-yellow">Medium</span>':'<span class="badge b-green">Small</span>'}</td>
+      <td class="mono">${a.containers.toLocaleString()}</td>
+      <td><span class="badge b-blue">${a.berth}</span></td>
+      <td>${a.cranes}</td>
+      <td class="mono">${a.start?fmtDT(a.start):'—'}</td>
+      <td class="mono">${a.end?fmtDT(a.end):'—'}</td>
+      <td style="color:${wc};font-weight:700" class="mono">${a.wait.toFixed(1)}</td>
+      <td>${statusBadge(a.status)}</td>
+    </tr>`;
+  }).join('');
+
+  // Timeline
+  const base=new Date('2026-09-16T00:00:00'), H=72;
+  const ta={'B1':[],'B2':[],'B3':[],'B4':[]};
+  asgn.forEach(a=>{if(a.start&&ta[a.berth])ta[a.berth].push(a);});
+  let tlHtml='<div style="display:flex;margin-left:32px;margin-bottom:5px">';
+  for(let h=0;h<=H;h+=12) tlHtml+=`<div style="flex:${h===0?0:12};text-align:center;font-size:10px;color:var(--text3)">+${h}h</div>`;
+  tlHtml+='</div>';
+  Object.keys(ta).forEach(bid=>{
+    tlHtml+=`<div class="tl-row"><div class="tl-label">${bid}</div><div class="tl-track">`;
+    ta[bid].forEach(a=>{
+      const s=Math.max(0,diffHours(base,a.start)), e=Math.min(H,diffHours(base,a.end));
+      if(e<=0||s>=H) return;
+      const l=(s/H)*100, w=((e-s)/H)*100;
+      tlHtml+=`<div class="tl-block" onclick="showVesselDetail('${a.vessel_id}')"
+        style="left:${l}%;width:${w}%;background:${BCOLORS[bid]||'#3b7df8'};opacity:.88"
+        title="${a.vessel_name} · ${fmtDT(a.start)}–${fmtDT(a.end)}">${a.vessel_id}</div>`;
+    });
+    tlHtml+='</div></div>';
+  });
+  document.getElementById('berth-timeline').innerHTML=tlHtml;
+
+  const c=getChart('chart-berth-load');
+  if(c){
+    const bids=state.berths.map(b=>b.berth_id);
+    const teu=bids.map(bid=>asgn.filter(a=>a.berth===bid).reduce((s,a)=>s+a.containers,0));
+    const hrs=bids.map(bid=>asgn.filter(a=>a.berth===bid).reduce((s,a)=>s+(a.handling||0),0));
+    c.setOption({backgroundColor:CHART_BG,tooltip:{trigger:'axis'},legend:{textStyle:{color:'#4a5568'},top:4},
+      xAxis:{type:'category',data:bids,axisLabel:AX},
+      yAxis:[{type:'value',name:'TEU',nameTextStyle:AX,axisLabel:AX,splitLine:SPLIT},{type:'value',name:'Hrs',nameTextStyle:AX,axisLabel:AX}],
+      series:[
+        {name:'Total TEU',type:'bar',data:teu,yAxisIndex:0,itemStyle:{color:'#3b7df8'},barMaxWidth:40},
+        {name:'Handling Hrs',type:'line',data:hrs,yAxisIndex:1,itemStyle:{color:'#f5a623'},smooth:true,symbol:'circle',symbolSize:6},
+      ],grid:{left:55,right:55,top:44,bottom:36}});
+  }
+}
+
+// ═══════════════════════════════════════════════════════════
+//  YARD
+// ═══════════════════════════════════════════════════════════
+function renderYard(){
+  let alertHtml='';
+  state.yards.forEach(y=>{
+    const p=getYardUtil(y);
+    if(p>=80) alertHtml+=`<div class="alert al-red">${icon('x-circle')}<div><strong>${y.yard_zone} at ${p}%</strong> — Overflow risk. Avg dwell ${y.avg_dwell_time_days}d. Clear containers &gt;4 days immediately.</div></div>`;
+    else if(p>=60) alertHtml+=`<div class="alert al-yellow">${icon('alert-triangle')}<div><strong>${y.yard_zone} at ${p}%</strong> — Monitor closely. Incoming TEU will increase utilization.</div></div>`;
+  });
+  document.getElementById('yard-alerts').innerHTML=alertHtml;
+
+  document.getElementById('yard-zone-cards').innerHTML=state.yards.map((y,idx)=>{
+    const pct=getYardUtil(y), col=yardColor(pct), acc=col==='red'?'ca-red':col==='yellow'?'ca-yellow':'ca-green';
+    const colVar=col==='red'?'var(--red)':col==='yellow'?'var(--yellow)':'var(--green)';
+    return `<div class="card card-accent ${acc}">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px">
+        <div><div class="card-label">${y.yard_zone}</div><div class="card-val" style="color:${colVar}">${pct}%</div></div>
+        <div style="text-align:right;font-size:11px;color:var(--text3)">${y.current_occupied_teu.toLocaleString()} / ${y.total_capacity_teu.toLocaleString()} TEU</div>
+      </div>
+      <div class="prog-wrap"><div class="prog-bar pb-${col}" style="width:${pct}%"></div></div>
+      <div style="margin-top:10px;font-size:11px;color:var(--text3)">
+        <div style="margin-bottom:3px">Avg dwell: <strong style="color:var(--text)">${y.avg_dwell_time_days} days</strong></div>
+        <div style="margin-bottom:3px">Linked: <strong style="color:var(--text)">${y.linked_berths}</strong></div>
+        <div>Free space: <strong style="color:${col==='red'?'var(--red)':'var(--green)'}">${(y.total_capacity_teu-y.current_occupied_teu).toLocaleString()} TEU</strong></div>
+      </div>
+    </div>`;
+  }).join('');
+
+  const c1=getChart('chart-yard-util');
+  if(c1) c1.setOption({backgroundColor:CHART_BG,tooltip:{trigger:'axis'},
+    title:{text:'Zone Utilization',textStyle:{color:'#4a5568',fontSize:11},left:'center',top:4},
+    xAxis:{type:'category',data:state.yards.map(y=>y.yard_zone),axisLabel:AX},
+    yAxis:{type:'value',max:100,axisLabel:{...AX,formatter:v=>v+'%'},splitLine:SPLIT},
+    series:[
+      {name:'Occupied',type:'bar',data:state.yards.map(y=>({value:getYardUtil(y),itemStyle:{color:yardColor(getYardUtil(y))==='red'?'#f04444':yardColor(getYardUtil(y))==='yellow'?'#f5a623':'#22c55e'}})),barMaxWidth:60,
+        label:{show:true,position:'top',color:'#4a5568',formatter:p=>p.value+'%'}},
+    ],grid:{left:46,right:16,top:44,bottom:36}});
+
+  const c2=getChart('chart-dwell');
+  if(c2) c2.setOption({backgroundColor:CHART_BG,tooltip:{trigger:'axis'},
+    title:{text:'Average Dwell Time (days)',textStyle:{color:'#4a5568',fontSize:11},left:'center',top:4},
+    xAxis:{type:'category',data:state.yards.map(y=>y.yard_zone),axisLabel:AX},
+    yAxis:{type:'value',axisLabel:AX,splitLine:SPLIT},
+    series:[{name:'Avg Dwell',type:'bar',data:state.yards.map(y=>y.avg_dwell_time_days),
+      itemStyle:{color:'#a78bfa'},barMaxWidth:60,
+      markLine:{data:[{name:'Threshold',yAxis:4,lineStyle:{color:'#f04444',type:'dashed'},label:{formatter:'4-day limit',color:'#f04444'}}]},
+      label:{show:true,position:'top',color:'#4a5568'}}],
+    grid:{left:46,right:16,top:44,bottom:36}});
+
+  document.getElementById('yard-edit-tbody').innerHTML=state.yards.map((y,idx)=>`<tr>
+    <td><strong style="color:var(--text)">${y.yard_zone}</strong></td>
+    <td><input class="form-input" id="y-cap-${idx}" value="${y.total_capacity_teu}" style="width:88px"></td>
+    <td><input class="form-input" id="y-occ-${idx}" value="${y.current_occupied_teu}" style="width:88px"></td>
+    <td><input class="form-input" id="y-dwell-${idx}" value="${y.avg_dwell_time_days}" style="width:76px"></td>
+    <td><input class="form-input" id="y-berths-${idx}" value="${y.linked_berths}" style="width:96px"></td>
+    <td><button class="btn btn-green btn-sm" onclick="saveYardRow(${idx})">Save</button></td>
+  </tr>`).join('');
+}
+function saveYardRow(idx){
+  const y=state.yards[idx];
+  y.total_capacity_teu=parseInt(document.getElementById(`y-cap-${idx}`).value)||y.total_capacity_teu;
+  y.current_occupied_teu=parseInt(document.getElementById(`y-occ-${idx}`).value)||y.current_occupied_teu;
+  y.avg_dwell_time_days=parseFloat(document.getElementById(`y-dwell-${idx}`).value)||y.avg_dwell_time_days;
+  y.linked_berths=document.getElementById(`y-berths-${idx}`).value;
+  saveToSession();renderYard();showToast(`${y.yard_zone} updated`);
+}
+
+// ═══════════════════════════════════════════════════════════
+//  PLAN
+// ═══════════════════════════════════════════════════════════
+function renderPlan(){
+  document.getElementById('plan-risk-tbody').innerHTML=computeRisk().map(w=>
+    `<tr><td style="white-space:nowrap;font-size:11px">${w.label}</td><td>${riskBadge(w.risk)}</td><td style="font-size:11px;color:var(--text3)">${w.reason}</td></tr>`
+  ).join('');
+
+  const asgn=computeAssignments();
+  document.getElementById('plan-berth-tbody').innerHTML=state.berths.map(b=>{
+    const cells=['16 Sep','17 Sep','18 Sep'].map(day=>{
+      const da=asgn.filter(a=>{
+        if(!a.start) return false;
+        const d=new Date(a.start);
+        return a.berth===b.berth_id&&day.includes(d.toLocaleDateString('en-GB',{month:'short'}))&&day.includes(String(d.getDate()));
+      });
+      if(!da.length) return `<td style="color:var(--text3)">—</td>`;
+      return `<td style="font-size:10px;color:var(--text2)">${da.map(a=>`${a.vessel_id} ${fmtTime(a.start)}–${fmtTime(a.end)}`).join('<br>')}</td>`;
+    });
+    return `<tr><td><strong style="color:var(--text)">${b.berth_id}</strong> <span style="color:var(--text3);font-size:10px">${b.cranes_available}cr</span></td>${cells.join('')}</tr>`;
+  }).join('');
+
+  document.getElementById('plan-actions').innerHTML=[
+    {n:1,color:'var(--red)',title:'Slow-steam V101 (Pacific Voyager) — arrive 04:15',body:'Contact vessel agent immediately. Eliminates 2-hr anchor idle. Aligns with B1 clearance. <strong>Impact: 4,500 TEU, saves ~2 hrs.</strong>'},
+    {n:2,color:'var(--yellow)',title:'Activate extended truck-gate hours on 16 Sep — clear Y1 now',body:'Y1 at 87%. V101+V103+V106 combined (~13,400 TEU) will overflow. Release containers >4-day dwell. <strong>Prevents 9+ hr delay (ref. I003).</strong>'},
+    {n:3,color:'var(--yellow)',title:'Route V110 (Sea Falcon) to B3 on 17 Sep 08:00',body:'V110 is Medium and B3-compatible. Breaks dual-large-vessel pattern that caused I005 (18-hr delay). <strong>Impact: 7,200 TEU, saves ~6–10 hrs.</strong>'},
+  ].map(a=>`<div style="display:flex;gap:12px;padding:13px;border-radius:8px;background:var(--surface2);border:1px solid var(--border);margin-bottom:8px;border-left:3px solid ${a.color}">
+    <div style="background:${a.color};color:#0a0d14;font-weight:800;font-size:11px;border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;flex-shrink:0">${a.n}</div>
+    <div><div style="font-weight:700;color:var(--text);font-size:12px;margin-bottom:3px">${a.title}</div><div style="font-size:11px;color:var(--text2);line-height:1.5">${a.body}</div></div>
+  </div>`).join('');
+
+  const escs=getEscalations();
+  document.getElementById('plan-escalations').innerHTML=escs.length
+    ? escs.map(e=>`<div class="esc-row esc-${e.level}">
+        <div class="esc-icon">${icon(e.level==='red'?'x-circle':'alert-triangle',15)}</div>
+        <div><div class="esc-title">${e.title}</div><div class="esc-desc">${e.desc}</div><div class="esc-owner">Owner: ${e.owner}</div></div>
+      </div>`).join('')
+    : '<div style="color:var(--text3);font-size:12px">No active escalations.</div>';
+}
+
+// ═══════════════════════════════════════════════════════════
+//  INCIDENTS
+// ═══════════════════════════════════════════════════════════
+function renderIncidents(){
+  document.getElementById('incident-tbody').innerHTML=[...state.incidents].sort((a,b)=>new Date(b.date)-new Date(a.date)).map(inc=>`<tr>
+    <td><span class="badge b-gray">${inc.incident_id}</span></td>
+    <td class="mono">${inc.date}</td>
+    <td><span class="badge b-blue">${inc.berth_id}</span></td>
+    <td style="color:var(--text2)">${inc.cause}</td>
+    <td style="color:${inc.delay_hours>=18?'var(--red)':inc.delay_hours>=10?'var(--yellow)':'var(--text2)'};font-weight:700">${inc.delay_hours}</td>
+    <td>${inc.vessels_affected}</td>
+    <td><button class="btn btn-danger btn-sm" onclick="deleteIncident('${inc.incident_id}')">Del</button></td>
+  </tr>`).join('');
+
+  const c1=getChart('chart-incident-berth');
+  if(c1){
+    const bids=['B1','B2','B3','B4'];
+    c1.setOption({backgroundColor:CHART_BG,tooltip:{trigger:'axis'},
+      title:{text:'Total Delay Hours by Berth',textStyle:{color:'#4a5568',fontSize:11},left:'center',top:4},
+      xAxis:{type:'category',data:bids,axisLabel:AX},
+      yAxis:{type:'value',axisLabel:AX,splitLine:SPLIT},
+      series:[{type:'bar',data:bids.map((bid,i)=>({value:state.incidents.filter(x=>x.berth_id===bid).reduce((s,x)=>s+x.delay_hours,0),itemStyle:{color:['#3b7df8','#a78bfa','#22c55e','#f5a623'][i]}})),barMaxWidth:48,
+        label:{show:true,position:'top',color:'#4a5568',formatter:p=>p.value+'h'}}],
+      grid:{left:46,right:16,top:44,bottom:36}});
+  }
+  const c2=getChart('chart-incident-cause');
+  if(c2){
+    const causes=[...new Set(state.incidents.map(i=>i.cause))];
+    c2.setOption({backgroundColor:CHART_BG,tooltip:{trigger:'item'},
+      title:{text:'Delay by Cause',textStyle:{color:'#4a5568',fontSize:11},left:'center',top:4},
+      series:[{type:'pie',radius:['35%','65%'],data:causes.map(c=>({name:c,value:state.incidents.filter(i=>i.cause===c).reduce((s,i)=>s+i.delay_hours,0)})),
+        label:{color:'#4a5568',fontSize:10}}]});
+  }
+}
+function openAddIncidentModal(){
+  ['mi-id','mi-delay','mi-vessels'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('mi-date').value='';
+  document.getElementById('mi-cause').value='';
+  openModal('modal-incident');
+}
+function saveIncident(){
+  const ni={incident_id:document.getElementById('mi-id').value.trim(),date:document.getElementById('mi-date').value,
+    berth_id:document.getElementById('mi-berth').value,cause:document.getElementById('mi-cause').value.trim(),
+    delay_hours:parseInt(document.getElementById('mi-delay').value)||0,vessels_affected:parseInt(document.getElementById('mi-vessels').value)||0};
+  if(!ni.incident_id||!ni.cause){showToast('Fill required fields');return;}
+  if(state.incidents.find(i=>i.incident_id===ni.incident_id)){showToast('Incident ID exists');return;}
+  state.incidents.push(ni);saveToSession();closeModal('modal-incident');renderIncidents();showToast('Incident logged');
+}
+function deleteIncident(id){
+  if(!confirm('Delete incident '+id+'?')) return;
+  state.incidents=state.incidents.filter(i=>i.incident_id!==id);
+  saveToSession();renderIncidents();showToast('Incident deleted');
+}
+
+// ═══════════════════════════════════════════════════════════
+//  DATA EDIT PAGE
+// ═══════════════════════════════════════════════════════════
+function switchDataTab(name,btn){
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  document.querySelectorAll('.tab-pane').forEach(p=>p.classList.remove('active'));
+  document.getElementById('tab-'+name).classList.add('active');
+  if(btn) btn.classList.add('active');
+}
+function renderDataPage(){
+  document.getElementById('berth-edit-tbody').innerHTML=state.berths.map((b,idx)=>`<tr>
+    <td><strong style="color:var(--text)">${b.berth_id}</strong></td>
+    <td><select class="form-select" id="db-size-${idx}" style="width:88px"><option ${b.max_vessel_size==='Large'?'selected':''}>Large</option><option ${b.max_vessel_size==='Medium'?'selected':''}>Medium</option><option ${b.max_vessel_size==='Small'?'selected':''}>Small</option></select></td>
+    <td><input class="form-input" id="db-cranes-${idx}" value="${b.cranes_available}" type="number" style="width:60px"></td>
+    <td><input class="form-input" id="db-rate-${idx}" value="${b.avg_handling_hours_per_1000}" type="number" style="width:68px"></td>
+    <td><select class="form-select" id="db-status-${idx}" style="width:90px"><option ${b.current_status==='Free'?'selected':''}>Free</option><option ${b.current_status==='Occupied'?'selected':''}>Occupied</option></select></td>
+    <td><input class="form-input" id="db-free-${idx}" value="${b.next_free_time.replace(' ','T')}" type="datetime-local" style="width:168px"></td>
+    <td><button class="btn btn-green btn-sm" onclick="saveBerthRow(${idx})">Save</button></td>
+  </tr>`).join('');
+
+  document.getElementById('vessel-edit-tbody').innerHTML=state.vessels.map((v,idx)=>`<tr>
+    <td style="color:var(--text3);font-size:11px">${v.vessel_id}</td>
+    <td><input class="form-input" id="dv-name-${idx}" value="${v.vessel_name}" style="width:128px"></td>
+    <td><input class="form-input" id="dv-origin-${idx}" value="${v.origin_port}" style="width:96px"></td>
+    <td><input class="form-input" id="dv-eta-${idx}" value="${v.eta.replace(' ','T').slice(0,16)}" type="datetime-local" style="width:164px"></td>
+    <td><select class="form-select" id="dv-size-${idx}" style="width:84px"><option ${v.vessel_size==='Large'?'selected':''}>Large</option><option ${v.vessel_size==='Medium'?'selected':''}>Medium</option><option ${v.vessel_size==='Small'?'selected':''}>Small</option></select></td>
+    <td><input class="form-input" id="dv-teu-${idx}" value="${v.containers}" type="number" style="width:78px"></td>
+    <td><input class="form-input" id="dv-berths-${idx}" value="${v.berth_compatibility}" style="width:88px"></td>
+    <td><button class="btn btn-green btn-sm" onclick="saveVesselRow(${idx})">Save</button></td>
+  </tr>`).join('');
+
+  document.getElementById('yard-data-tbody').innerHTML=state.yards.map((y,idx)=>`<tr>
+    <td><strong style="color:var(--text)">${y.yard_zone}</strong></td>
+    <td><input class="form-input" id="dy-cap-${idx}" value="${y.total_capacity_teu}" type="number" style="width:88px"></td>
+    <td><input class="form-input" id="dy-occ-${idx}" value="${y.current_occupied_teu}" type="number" style="width:88px"></td>
+    <td><input class="form-input" id="dy-dwell-${idx}" value="${y.avg_dwell_time_days}" type="number" step="0.1" style="width:78px"></td>
+    <td><input class="form-input" id="dy-berths-${idx}" value="${y.linked_berths}" style="width:88px"></td>
+    <td><button class="btn btn-green btn-sm" onclick="saveYardDataRow(${idx})">Save</button></td>
+  </tr>`).join('');
+
+  document.getElementById('incident-edit-tbody').innerHTML=state.incidents.map((inc,idx)=>`<tr>
+    <td style="color:var(--text3);font-size:11px">${inc.incident_id}</td>
+    <td><input class="form-input" id="di-date-${idx}" value="${inc.date}" type="date" style="width:128px"></td>
+    <td><select class="form-select" id="di-berth-${idx}" style="width:68px"><option ${inc.berth_id==='B1'?'selected':''}>B1</option><option ${inc.berth_id==='B2'?'selected':''}>B2</option><option ${inc.berth_id==='B3'?'selected':''}>B3</option><option ${inc.berth_id==='B4'?'selected':''}>B4</option></select></td>
+    <td><input class="form-input" id="di-cause-${idx}" value="${inc.cause}" style="width:196px"></td>
+    <td><input class="form-input" id="di-delay-${idx}" value="${inc.delay_hours}" type="number" style="width:68px"></td>
+    <td><input class="form-input" id="di-vessels-${idx}" value="${inc.vessels_affected}" type="number" style="width:58px"></td>
+    <td><button class="btn btn-green btn-sm" onclick="saveIncidentRow(${idx})">Save</button></td>
+  </tr>`).join('');
+}
+function saveBerthRow(idx){
+  const b=state.berths[idx];
+  b.max_vessel_size=document.getElementById(`db-size-${idx}`).value;
+  b.cranes_available=parseInt(document.getElementById(`db-cranes-${idx}`).value)||b.cranes_available;
+  b.avg_handling_hours_per_1000=parseFloat(document.getElementById(`db-rate-${idx}`).value)||b.avg_handling_hours_per_1000;
+  b.current_status=document.getElementById(`db-status-${idx}`).value;
+  b.next_free_time=document.getElementById(`db-free-${idx}`).value.replace('T',' ');
+  saveToSession();showToast(`${b.berth_id} updated`);
+}
+function saveVesselRow(idx){
+  const v=state.vessels[idx];
+  v.vessel_name=document.getElementById(`dv-name-${idx}`).value;
+  v.origin_port=document.getElementById(`dv-origin-${idx}`).value;
+  v.eta=document.getElementById(`dv-eta-${idx}`).value.replace('T',' ');
+  v.vessel_size=document.getElementById(`dv-size-${idx}`).value;
+  v.containers=parseInt(document.getElementById(`dv-teu-${idx}`).value)||v.containers;
+  v.berth_compatibility=document.getElementById(`dv-berths-${idx}`).value;
+  saveToSession();showToast(`${v.vessel_id} updated`);
+}
+function saveYardDataRow(idx){
+  const y=state.yards[idx];
+  y.total_capacity_teu=parseInt(document.getElementById(`dy-cap-${idx}`).value)||y.total_capacity_teu;
+  y.current_occupied_teu=parseInt(document.getElementById(`dy-occ-${idx}`).value)||y.current_occupied_teu;
+  y.avg_dwell_time_days=parseFloat(document.getElementById(`dy-dwell-${idx}`).value)||y.avg_dwell_time_days;
+  y.linked_berths=document.getElementById(`dy-berths-${idx}`).value;
+  saveToSession();showToast(`${y.yard_zone} updated`);
+}
+function saveIncidentRow(idx){
+  const inc=state.incidents[idx];
+  inc.date=document.getElementById(`di-date-${idx}`).value;
+  inc.berth_id=document.getElementById(`di-berth-${idx}`).value;
+  inc.cause=document.getElementById(`di-cause-${idx}`).value;
+  inc.delay_hours=parseInt(document.getElementById(`di-delay-${idx}`).value)||inc.delay_hours;
+  inc.vessels_affected=parseInt(document.getElementById(`di-vessels-${idx}`).value)||inc.vessels_affected;
+  saveToSession();showToast(`${inc.incident_id} updated`);
+}
+
+// ═══════════════════════════════════════════════════════════
+//  MODALS
+// ═══════════════════════════════════════════════════════════
+function openModal(id){document.getElementById(id).classList.add('open');}
+function closeModal(id){document.getElementById(id).classList.remove('open');}
+document.querySelectorAll('.modal-bg').forEach(m=>m.addEventListener('click',e=>{if(e.target===m)m.classList.remove('open');}));
+window.addEventListener('resize',()=>Object.values(charts).forEach(c=>c.resize()));
+
+// ═══════════════════════════════════════════════════════════
+//  INIT
+// ═══════════════════════════════════════════════════════════
+loadState();
+renderOverview();
+</script>
+</body>
+</html>
