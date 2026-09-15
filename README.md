@@ -10,7 +10,7 @@
 |---|---|
 | **Team Name** | CodeQuads |
 | **Track** | AI |
-| **Team Lead** | Bhavya Durgani— [email@ibm.com] |
+| **Team Lead** | Bhavya Durgani— d25cs112@charusat.edu.in |
 | **Members** | Rudra Patel, Maitri Sheta, Vainavi Raval |
 
 ---
